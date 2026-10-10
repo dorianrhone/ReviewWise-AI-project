@@ -1,16 +1,29 @@
+
 require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
 
+// Import Gemini AI functions
+const {
+    analyzeReviews,
+    answerQuestion
+} = require("./services/gemini");
+
+// Create Express application
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Allow incoming JSON data
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 
 // Serve frontend files
 app.use(express.static(path.join(__dirname, "public")));
+
+// Display the frontend homepage
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "home.html"));
+});
 
 // Backend health check
 app.get("/api/health", (req, res) => {
@@ -20,62 +33,78 @@ app.get("/api/health", (req, res) => {
     });
 });
 
-
- // Analyze customer reviews
+// Analyze customer reviews using Gemini AI
 app.post("/api/analyze", async (req, res) => {
     try {
-        const { reviews } = req.body;
+        const { reviews, businessName } = req.body || {};
 
+        // Validate customer reviews
         if (typeof reviews !== "string" || !reviews.trim()) {
             return res.status(400).json({
                 error: "Please enter customer reviews."
             });
         }
 
-        // Temporary test response
+        // Send reviews to Gemini AI
+        const summary = await analyzeReviews(
+            reviews,
+            typeof businessName === "string" && businessName.trim()
+                ? businessName.trim()
+                : "this business"
+        );
+
+        // Return Gemini analysis to frontend
         res.json({
-            summary: "Customers enjoy the food but mention slow service.",
-            positives: ["Good food", "Friendly employees"],
-            negatives: ["Slow service"],
-            recommendations: ["Improve service speed"]
+            summary: summary
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Review analysis error:", error);
+
         res.status(500).json({
-            error: "Something went wrong analyzing reviews."
+            error: "Unable to analyze reviews. Please try again."
         });
     }
 });
 
-// Answer follow-up questions
+// Answer follow-up questions using Gemini AI
 app.post("/api/chat", async (req, res) => {
     try {
-        const { reviews, question } = req.body;
+        const { reviews, question } = req.body || {};
 
+        // Validate reviews and question
         if (
-            typeof reviews !== "string" || !reviews.trim() ||
-            typeof question !== "string" || !question.trim()
+            typeof reviews !== "string" ||
+            !reviews.trim() ||
+            typeof question !== "string" ||
+            !question.trim()
         ) {
             return res.status(400).json({
                 error: "Reviews and a question are required."
             });
         }
 
-        // Temporary test response
+        // Send question and reviews to Gemini AI
+        const answer = await answerQuestion(
+            reviews,
+            question
+        );
+
+        // Return Gemini answer to frontend
         res.json({
-            answer: "Based on the reviews, improving service speed should be the priority."
+            answer: answer
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Chatbot error:", error);
+
         res.status(500).json({
-            error: "Something went wrong answering the question."
+            error: "Unable to answer your question. Please try again."
         });
     }
 });
 
-// Start server
+// Start backend server
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`ReviewWise AI running at http://localhost:${PORT}`);
 });

@@ -34,14 +34,7 @@ analyze.addEventListener("click", async () => {
     const data = await postJSON("/api/analyze", {
       reviews: text
     });
-    const list = (value) =>
-      Array.isArray(value) ? value.join("\n") : "None listed";
-    
-    answer.textContent = 
-      `SUMMARY\n${data.summary || "No summary"}\n\n` +
-      `POSITIVES\n- ${list(data.positives)}\n\n` +
-      `NEGATIVES\n- ${list(data.negatives)}\n\n` +
-      `RECOMMENDATIONS\n- ${list(data.recommendations)}`;
+    answer.textContent = data.summary || "No summary returned.";
   } catch (error) {
     answer.textContent = `Error: ${error.message}`;
   } finally {
