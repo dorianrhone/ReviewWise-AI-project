@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - ReviewWise AI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main>
+  <div class="header-row">
+    <div>
+      <h1>Virtual Checkout</h1>
+      <p>Complete your paid subscription upgrade.</p>
+    </div>
+    <a href="pricing.html" class="nav-btn secondary">View Plans</a>
+  </div>
+
+  <!-- Checkout Grid (Only for Paid Tiers) -->
+  <div class="checkout-grid" id="checkout-view">
+    <div class="checkout-left">
+      <h3>Selected Subscription</h3>
+      <div id="selected-plan-display" class="order-summary" style="margin-bottom: 20px;">
+        <strong id="display-plan-name">Pro Tier</strong>
+        <p id="display-plan-desc" style="margin: 4px 0 0 0; color: #555; font-size: 13px;">Full subscription with standard Gemini AI capabilities.</p>
+      </div>
+
+      <!-- Interactive Credit Card Visual -->
+      <div class="card-visual">
+        <div class="card-chip"></div>
+        <div class="card-number" id="preview-number">•••• •••• •••• ••••</div>
+        <div class="card-row">
+          <div>
+            <div class="card-label">Card Holder</div>
+            <div class="card-val" id="preview-name">YOUR NAME</div>
+          </div>
+          <div>
+            <div class="card-label">Expires</div>
+            <div class="card-val" id="preview-expiry">MM/YY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Virtual Payment Form -->
+    <div class="checkout-right">
+      <h3>Payment Details</h3>
+      <form id="payment-form" onsubmit="processPayment(event)">
+        <label for="card-name">Name on Card</label>
+        <input type="text" id="card-name" placeholder="John Doe" required oninput="updateCardPreview()">
+
+        <label for="card-number">Card Number</label>
+        <input type="text" id="card-number" placeholder="4532 0123 4567 8910" maxlength="19" required oninput="formatCardNumber(this)">
+
+        <div class="form-row">
+          <div>
+            <label for="card-exp">Expiration</label>
+            <input type="text" id="card-exp" placeholder="MM/YY" maxlength="5" required oninput="formatExpiry(this)">
+          </div>
+          <div>
+            <label for="card-cvv">CVV</label>
+            <input type="password" id="card-cvv" placeholder="123" maxlength="4" required>
+          </div>
+        </div>
+
+        <div class="order-summary">
+          <div class="summary-line">
+            <span>Subtotal:</span>
+            <span id="subtotal-amount">$5.99</span>
+          </div>
+          <div class="summary-line">
+            <span>Estimated Tax (8%):</span>
+            <span id="tax-amount">$0.48</span>
+          </div>
+          <hr>
+          <div class="summary-line total">
+            <span>Total Due Today:</span>
+            <span id="total-amount">$6.47</span>
+          </div>
+        </div>
+
+        <button type="submit" id="pay-btn" class="pay-button">Pay & Activate Subscription</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirmation / Receipt State -->
+  <div id="receipt-view" class="receipt-container" style="display: none;">
+    <div class="success-icon">✓</div>
+    <h2>Payment Successful!</h2>
+    <p>Your paid subscription is now active.</p>
+    <div class="receipt-box">
+      <p><strong>Order ID:</strong> <span id="receipt-id">#RW-98214</span></p>
+      <p><strong>Plan:</strong> <span id="receipt-plan">Pro Tier</span></p>
+      <p><strong>Amount Paid:</strong> <span id="receipt-amount">$6.47</span></p>
+      <p><strong>Status:</strong> Active</p>
+    </div>
+    <a href="home.html" class="nav-btn primary" style="display: inline-block; margin-top: 16px;">Return to App & Analyze Reviews</a>
+  </div>
+</main>
+
+<footer>
+    <p>&copy; 2026 ReviewWise AI. All rights reserved.</p>
+</footer>
+
+<script>
+  const PLAN_DATA = {
+    pro: { name: "Pro Tier", price: 5.99, desc: "Full subscription with standard Gemini AI capabilities." },
+    advanced: { name: "Advanced Tier", price: 11.99, desc: "Unlocked access to a more advanced version of Gemini AI." }
+  };
+
+  // Default to pro if none selected
+  let pendingTier = localStorage.getItem("pendingCheckoutTier") || "pro";
+  if (!PLAN_DATA[pendingTier]) pendingTier = "pro";
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const item = PLAN_DATA[pendingTier];
+    document.getElementById("display-plan-name").textContent = `${item.name} ($${item.price.toFixed(2)}/mo)`;
+    document.getElementById("display-plan-desc").textContent = item.desc;
+
+    const subtotal = item.price;
+    const tax = subtotal * 0.08;
+    const total = subtotal + tax;
+
+    document.getElementById("subtotal-amount").textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById("tax-amount").textContent = `$${tax.toFixed(2)}`;
+    document.getElementById("total-amount").textContent = `$${total.toFixed(2)}`;
+    document.getElementById("pay-btn").textContent = `Pay $${total.toFixed(2)}`;
+  });
+
+  function updateCardPreview() {
+    const nameVal = document.getElementById("card-name").value.trim();
+    document.getElementById("preview-name").textContent = nameVal ? nameVal.toUpperCase() : "YOUR NAME";
+  }
+
+  function formatCardNumber(input) {
+    let val = input.value.replace(/\D/g, '').substring(0, 16);
+    let formatted = val.match(/.{1,4}/g)?.join(' ') || '';
+    input.value = formatted;
+    document.getElementById("preview-number").textContent = formatted || "•••• •••• •••• ••••";
+  }
+
+  function formatExpiry(input) {
+    let val = input.value.replace(/\D/g, '').substring(0, 4);
+    if (val.length >= 3) {
+      val = val.substring(0, 2) + '/' + val.substring(2);
+    }
+    input.value = val;
+    document.getElementById("preview-expiry").textContent = val || "MM/YY";
+  }
+
+  function processPayment(e) {
+    e.preventDefault();
+    const btn = document.getElementById("pay-btn");
+    btn.disabled = true;
+    btn.textContent = "Processing Secure Payment...";
+
+    setTimeout(() => {
+      const item = PLAN_DATA[pendingTier];
+      const tax = item.price * 0.08;
+      const total = item.price + tax;
+
+      // SUCCESSFUL PAYMENT: Save active paid status to localStorage
+      localStorage.setItem("reviewWiseTier", pendingTier);
+      localStorage.setItem("reviewWisePaidStatus", "active");
+
+      document.getElementById("receipt-id").textContent = "#RW-" + Math.floor(100000 + Math.random() * 900000);
+      document.getElementById("receipt-plan").textContent = item.name;
+      document.getElementById("receipt-amount").textContent = `$${total.toFixed(2)}`;
+
+      document.getElementById("checkout-view").style.display = "none";
+      document.getElementById("receipt-view").style.display = "block";
+    }, 1500);
+  }
+</script>
+</body>
+</html>

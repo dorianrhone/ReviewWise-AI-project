@@ -6,13 +6,66 @@ body {
   padding: 28px;
 }
 main {
-  max-width: 760px;
+  max-width: 780px;
   margin: auto;
   background: white;
   padding: 28px;
   border-radius: 16px;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
 }
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.header-row h1 {
+  margin: 0 0 4px 0;
+}
+.header-row p {
+  margin: 0;
+  color: #556;
+}
+.nav-links {
+  display: flex;
+  gap: 8px;
+}
+.nav-btn {
+  display: inline-block;
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+}
+.nav-btn.primary {
+  background: #117c85;
+  color: white;
+}
+.nav-btn.secondary {
+  background: #edf5f5;
+  color: #117c85;
+  border: 1px solid #117c85;
+}
+
+/* Tier Banner */
+.tier-banner {
+  background: #edf5f5;
+  border: 1px solid #117c85;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 16px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.upgrade-link {
+  color: #117c85;
+  font-weight: bold;
+  font-size: 13px;
+}
+
 label {
   display: block;
   margin: 18px 0 8px;
@@ -48,8 +101,161 @@ pre {
   font: inherit;
   min-height: 70px;
 }
-footer { max-width: 760px; margin: 16px auto; font-size: 13px; }
-@media (max-width: 600px) {
-  body { padding: 12px; }
-  main { padding: 18px; }
+
+/* Pricing Grid */
+.pricing-container {
+  margin-top: 20px;
 }
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.pricing-card {
+  background: #edf5f5;
+  border: 1px solid #b8c4cf;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+.pricing-card.popular {
+  border-color: #117c85;
+  box-shadow: 0 4px 12px rgba(17, 124, 133, 0.15);
+}
+.badge {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  background: #117c85;
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.price {
+  font-size: 24px;
+  font-weight: bold;
+  color: #117c85;
+  margin: 8px 0;
+}
+.price span {
+  font-size: 14px;
+  color: #555;
+}
+.plan-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: #445566;
+}
+.plan-btn.primary {
+  background: #117c85;
+}
+
+/* Checkout Page Styles */
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 20px;
+}
+@media (max-width: 640px) {
+  .checkout-grid { grid-template-columns: 1fr; }
+}
+
+/* Virtual Credit Card Display */
+.card-visual {
+  background: linear-gradient(135deg, #117c85, #14243a);
+  color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.card-chip {
+  width: 36px;
+  height: 26px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+.card-number {
+  font-family: monospace;
+  font-size: 18px;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+.card-row {
+  display: flex;
+  justify-content: space-between;
+}
+.card-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.card-val {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Form Styles */
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+.order-summary {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 16px;
+  font-size: 14px;
+  border: 1px solid #cbd5e1;
+}
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.summary-line.total {
+  font-weight: bold;
+  font-size: 16px;
+  color: #117c85;
+}
+.pay-button {
+  width: 100%;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 14px;
+}
+
+/* Receipt Display */
+.receipt-container {
+  text-align: center;
+  padding: 20px 0;
+}
+.success-icon {
+  width: 50px;
+  height: 50px;
+  background: #22c55e;
+  color: white;
+  font-size: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+.receipt-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 320px;
+  margin: 16px auto;
+  text-align: left;
+}
+footer { max-width: 780px; margin: 16px auto; font-size: 13px; }

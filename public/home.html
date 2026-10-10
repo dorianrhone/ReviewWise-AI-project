@@ -8,20 +8,35 @@
 </head>
 <body>
 <main>  
-<h1>ReviewWise AI</h1>
-<p>Turning in Customer Reviews into Huge Business Insights.</p>
-<label for="reviews">Customer Reviews</label>
-<textarea id="reviews" rows="9" placeholder="Paste reviews here"></textarea>
-<button id="analyze">Analyze Reviews</button>
-<h2>Gemini Insights</h2>
-<pre id="answer" aria-live="polite">Results appear here.</pre>
-<label for="question">Ask a follow-up question</label>
-<input id="question" placeholder="What should we improve first?">
-<button id="ask">Ask Gemini</button>
+  <div class="header-row">
+    <div>
+      <h1>ReviewWise AI</h1>
+      <p>Turning Customer Reviews into Huge Business Insights.</p>
+    </div>
+    <div class="nav-links">
+      <a href="pricing.html" class="nav-btn secondary">Pricing Plans</a>
+      <a href="checkout.html" class="nav-btn primary">Checkout</a>
+    </div>
+  </div>
+
+  <!-- Current Tier Display Banner -->
+  <div id="tier-banner" class="tier-banner">
+    <span>Active Tier: <strong id="active-tier-name">Free Tier ($0/mo)</strong></span>
+    <a href="pricing.html" class="upgrade-link">Upgrade Plan</a>
+  </div>
+
+  <label for="reviews">Customer Reviews</label>
+  <textarea id="reviews" rows="9" placeholder="Paste reviews here"></textarea>
+  <button id="analyze">Analyze Reviews</button>
+  <h2>Gemini Insights</h2>
+  <pre id="answer" aria-live="polite">Results appear here.</pre>
+  <label for="question">Ask a follow-up question</label>
+  <input id="question" placeholder="What should we improve first?">
+  <button id="ask">Ask Gemini</button>
 </main>
-</body>
 <footer>
     <p>&copy; 2026 ReviewWise AI. All rights reserved.</p>
 </footer>
-<script src="script.js" defer></script>
+<script src="home.js" defer></script>
+</body>
 </html>
