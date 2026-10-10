@@ -48,3 +48,8 @@ pre {
   font: inherit;
   min-height: 70px;
 }
+footer { max-width: 760px; margin: 16px auto; font-size: 13px; }
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  main { padding: 18px; }
+}
