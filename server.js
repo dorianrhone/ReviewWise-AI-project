@@ -1,58 +1,81 @@
-
 require("dotenv").config();
 
 const express = require("express");
-const { GoogleGenAI } = require("@google/genai");
+const path = require("path");
 
 const app = express();
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
-});
+const PORT = 3000;
 
+// Allow incoming JSON data
 app.use(express.json());
-app.use(express.static("public"));
 
-app.post("/api/chat", async (req, res) => {
-  try {
-    const { reviews, question } = req.body;
+// Serve frontend files
+app.use(express.static(path.join(__dirname, "public")));
 
-    if (!reviews || !question) {
-      return res.status(400).json({
-        error: "Reviews and a question are required."
-      });
-    }
-
-    const prompt = `
-You are an AI assistant for small business owners.
-
-Analyze the following customer reviews.
-Only use information supported by the reviews.
-Do not invent complaints, statistics, or facts.
-
-Customer reviews:
-${reviews}
-
-Business owner's question:
-${question}
-
-Give a concise, practical answer.
-`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: prompt
+// Backend health check
+app.get("/api/health", (req, res) => {
+    res.json({
+        status: "success",
+        message: "ReviewWise AI backend is running!"
     });
-
-    res.json({ answer: response.text });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: "Unable to analyze reviews."
-    });
-  }
 });
 
-app.listen(3000, () => {
-  console.log("Running at http://localhost:3000");
+
+ // Analyze customer reviews
+app.post("/api/analyze", async (req, res) => {
+    try {
+        const { reviews } = req.body;
+
+        if (typeof reviews !== "string" || !reviews.trim()) {
+            return res.status(400).json({
+                error: "Please enter customer reviews."
+            });
+        }
+
+        // Temporary test response
+        res.json({
+            summary: "Customers enjoy the food but mention slow service.",
+            positives: ["Good food", "Friendly employees"],
+            negatives: ["Slow service"],
+            recommendations: ["Improve service speed"]
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Something went wrong analyzing reviews."
+        });
+    }
+});
+
+// Answer follow-up questions
+app.post("/api/chat", async (req, res) => {
+    try {
+        const { reviews, question } = req.body;
+
+        if (
+            typeof reviews !== "string" || !reviews.trim() ||
+            typeof question !== "string" || !question.trim()
+        ) {
+            return res.status(400).json({
+                error: "Reviews and a question are required."
+            });
+        }
+
+        // Temporary test response
+        res.json({
+            answer: "Based on the reviews, improving service speed should be the priority."
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Something went wrong answering the question."
+        });
+    }
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 });
