@@ -4,7 +4,7 @@ const welcomeContainer = document.getElementById("welcome-container");
 const chatHistoryList = document.getElementById("chat-history-list");
 const activeTierName = document.getElementById("active-tier-name");
 const loggedOutView = document.getElementById("logged-out-view");
-const loggedInView = document.getElementById("loggedIn-view");
+const loggedInView = document.getElementById("logged-in-view");
 const userEmailDisplay = document.getElementById("user-email-display");
 
 // Supabase authentication
@@ -311,10 +311,26 @@ async function logout() {
             throw new Error("Authentication is not initialized.");
         }
 
+        // Sign out from Supabase
         const { error } = await supabaseClient.auth.signOut();
 
         if (error) throw error;
 
+        // Reset demo subscription
+        localStorage.removeItem("reviewWisePaidStatus");
+        localStorage.setItem("reviewWiseTier", "free");
+
+        // Reset demo weekly usage
+        localStorage.removeItem("reviewWiseUsage");
+
+        // Remove legacy authentication flags
+        localStorage.removeItem("reviewWiseLoggedIn");
+        localStorage.removeItem("reviewWiseUserEmail");
+
+        // Update local tier state
+        currentTier = "free";
+
+        // Return to login page
         window.location.href = "login.html";
 
     } catch (error) {
@@ -368,6 +384,12 @@ async function initializeHomeAuth() {
         if (error) throw error;
 
         const user = data.user;
+
+        if (!user) {
+            currentTier = "free";
+        }
+
+        updateTierBadgeUI();
 
         if (user) {
             loggedOutView.style.display = "none";
