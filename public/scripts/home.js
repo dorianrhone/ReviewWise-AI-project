@@ -60,14 +60,7 @@ if (analyze) {
         reviews: text,
         tier: currentTier
       });
-      const list = (value) =>
-        Array.isArray(value) ? value.join("\n") : "None listed";
-      
-      answer.textContent = 
-        `SUMMARY (${currentTier.toUpperCase()} TIER)\n${data.summary || "No summary"}\n\n` +
-        `POSITIVES\n- ${list(data.positives)}\n\n` +
-        `NEGATIVES\n- ${list(data.negatives)}\n\n` +
-        `RECOMMENDATIONS\n- ${list(data.recommendations)}`;
+      answer.textContent = data.summary || "No summary returned.";
     } catch (error) {
       answer.textContent = `Error: ${error.message}`;
     } finally {
