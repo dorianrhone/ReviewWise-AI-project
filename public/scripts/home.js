@@ -1,14 +1,11 @@
-const reviews = document.getElementById("reviews");
-const question = document.getElementById("question");
-const answer = document.getElementById("answer");
-const analyze = document.getElementById("analyze");
-const ask = document.getElementById("ask");
-const activeTierName = document.getElementById("active-tier-name");
+const chatFeed = document.getElementById("chat-feed");
+const chatInput = document.getElementById("chat-input");
+const welcomeContainer = document.getElementById("welcome-container");
 const chatHistoryList = document.getElementById("chat-history-list");
+const activeTierName = document.getElementById("active-tier-name");
 const loggedOutView = document.getElementById("logged-out-view");
 const loggedInView = document.getElementById("logged-in-view");
 const userEmailDisplay = document.getElementById("user-email-display");
-const quickLoginEmail = document.getElementById("quick-login-email");
 
 // Check Authentication State
 const isLoggedIn = localStorage.getItem("reviewWiseLoggedIn") === "true";
@@ -24,17 +21,19 @@ if (!isPaidActive || (currentTier !== "pro" && currentTier !== "advanced")) {
   localStorage.removeItem("reviewWisePaidStatus");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const tierLabels = {
-    free: "Free Tier ($0/mo)",
-    pro: "Pro Tier ($5.99/mo)",
-    advanced: "Advanced Tier ($11.99/mo)"
-  };
-  if (activeTierName) {
-    activeTierName.textContent = tierLabels[currentTier] || "Free Tier ($0/mo)";
-  }
+// Define Tier Limits (Chats per week)
+const TIER_LIMITS = {
+  free: 10,
+  pro: 50,
+  advanced: 100
+};
 
-  // Toggle auth display views in sidebar
+let currentConversation = []; // Array of {role: 'user' | 'assistant', content: string}
+let activeSessionId = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateTierBadgeUI();
+
   if (isLoggedIn) {
     if (loggedOutView) loggedOutView.style.display = "none";
     if (loggedInView) loggedInView.style.display = "block";
@@ -45,54 +44,84 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   loadChatHistoryUI();
+  renderChat();
 });
 
-function quickLogin() {
-  const emailVal = quickLoginEmail ? quickLoginEmail.value.trim() : "";
-  if (!emailVal) {
-    alert("Please enter a valid email address.");
-    return;
+// Manage weekly usage count & window reset (7-day window)
+function getWeeklyUsage() {
+  const usageData = JSON.parse(localStorage.getItem("reviewWiseUsage") || "{}");
+  const now = Date.now();
+  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+  if (!usageData.startTime || (now - usageData.startTime > ONE_WEEK_MS)) {
+    const newUsage = { count: 0, startTime: now };
+    localStorage.setItem("reviewWiseUsage", JSON.stringify(newUsage));
+    return newUsage;
   }
-  localStorage.setItem("reviewWiseLoggedIn", "true");
-  localStorage.setItem("reviewWiseUserEmail", emailVal);
-  window.location.reload();
+
+  return usageData;
 }
 
-function logout() {
-  localStorage.removeItem("reviewWiseLoggedIn");
-  localStorage.removeItem("reviewWiseUserEmail");
-  window.location.reload();
+function incrementWeeklyUsage() {
+  const usageData = getWeeklyUsage();
+  usageData.count += 1;
+  localStorage.setItem("reviewWiseUsage", JSON.stringify(usageData));
+  updateTierBadgeUI();
 }
 
-function startNewChat() {
-  if (reviews) reviews.value = "";
-  if (question) question.value = "";
-  if (answer) answer.textContent = "Results will appear here...";
-  localStorage.removeItem("reviewWiseActiveSession");
+function updateTierBadgeUI() {
+  if (!activeTierName) return;
+  const usage = getWeeklyUsage();
+  const limit = TIER_LIMITS[currentTier] || 10;
+  
+  const tierLabels = {
+    free: "Free Tier ($0/mo)",
+    pro: "Pro Tier ($5.99/mo)",
+    advanced: "Advanced Tier ($11.99/mo)"
+  };
+
+  activeTierName.innerHTML = `${tierLabels[currentTier] || "Free Tier"}<br>` +
+    `<span style="font-size: 11px; color: #9ca3af; font-weight: normal;">` +
+    `Usage: ${usage.count} / ${limit} chats this week</span>`;
 }
 
 function loadSuggestion(text) {
-  if (reviews) {
-    reviews.value = text;
-    reviews.focus();
+  if (chatInput) {
+    chatInput.value = text;
+    chatInput.focus();
   }
 }
 
-function saveCurrentChatToHistory(summaryText) {
+function startNewChat() {
+  saveCurrentChatToHistory();
+  currentConversation = [];
+  activeSessionId = Date.now();
+  renderChat();
+}
+
+function saveCurrentChatToHistory() {
+  if (currentConversation.length === 0) return;
+  
   let history = JSON.parse(localStorage.getItem("reviewWiseChatHistory") || "[]");
-  const reviewSnippet = reviews.value.trim().substring(0, 30) || "Review Analysis";
-  const sessionItem = {
-    id: Date.now(),
-    title: `Analysis: ${reviewSnippet}...`,
-    reviewsText: reviews.value,
-    answerText: summaryText
+  const firstUserMsg = currentConversation.find(m => m.role === 'user');
+  const titleSnippet = firstUserMsg ? firstUserMsg.content.substring(0, 30) + '...' : 'Conversation';
+
+  const sessionObj = {
+    id: activeSessionId || Date.now(),
+    title: titleSnippet,
+    messages: currentConversation
   };
-  
-  history.unshift(sessionItem);
-  if (history.length > 10) history.pop();
-  
+
+  const existingIdx = history.findIndex(item => item.id === sessionObj.id);
+  if (existingIdx >= 0) {
+    history[existingIdx] = sessionObj;
+  } else {
+    history.unshift(sessionObj);
+  }
+
+  if (history.length > 15) history.pop();
+
   localStorage.setItem("reviewWiseChatHistory", JSON.stringify(history));
-  localStorage.setItem("reviewWiseActiveSession", JSON.stringify(sessionItem));
   loadChatHistoryUI();
 }
 
@@ -111,78 +140,123 @@ function loadChatHistoryUI() {
     div.className = "history-item";
     div.textContent = item.title;
     div.onclick = () => {
-      reviews.value = item.reviewsText;
-      answer.textContent = item.answerText;
+      activeSessionId = item.id;
+      currentConversation = item.messages;
+      renderChat();
     };
     chatHistoryList.appendChild(div);
   });
 }
 
-function setBusy(busy, message = "Working...") {
-  if (analyze) analyze.disabled = busy;
-  if (ask) ask.disabled = busy;
-  if (busy && answer) answer.textContent = message;
-}
+function renderChat() {
+  if (!chatFeed) return;
+  chatFeed.innerHTML = "";
 
-async function postJSON(url, payload) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || "Request failed");
+  if (currentConversation.length === 0) {
+    if (welcomeContainer) welcomeContainer.style.display = "block";
+    return;
   }
-  return data;
-}
 
-if (analyze) {
-  analyze.addEventListener("click", async () => {
-    const text = reviews.value.trim();
-    if (!text) {
-      answer.textContent = "Please paste reviews first.";
-      return;
+  if (welcomeContainer) welcomeContainer.style.display = "none";
+
+  currentConversation.forEach(msg => {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `chat-message ${msg.role}`;
+
+    if (msg.role === 'user') {
+      msgDiv.innerHTML = `<div class="message-bubble">${escapeHtml(msg.content)}</div>`;
+    } else {
+      msgDiv.innerHTML = `
+        <div class="message-content">${formatAssistantContent(msg.content)}</div>
+        <div class="message-actions">
+          <button class="action-btn" title="Copy" onclick="copyText(this)">📋</button>
+          <button class="action-btn" title="Dislike">👎</button>
+          <button class="action-btn" title="Share">📤</button>
+          <button class="action-btn" title="Read Aloud">🔊</button>
+          <button class="action-btn" title="Regenerate">🔄</button>
+        </div>`;
     }
-    setBusy(true, `Analyzing reviews using ${currentTier.toUpperCase()} model...`);
-    try {
-      const data = await postJSON("/api/analyze", {
-        reviews: text,
-        tier: currentTier
-      });
-      const resultSummary = data.summary || "No summary returned.";
-      answer.textContent = resultSummary;
-      saveCurrentChatToHistory(resultSummary);
-    } catch (error) {
-      answer.textContent = `Error: ${error.message}`;
-    } finally {
-      setBusy(false);
-    }
+    chatFeed.appendChild(msgDiv);
   });
+
+  chatFeed.scrollTop = chatFeed.scrollHeight;
 }
 
-if (ask) {
-  ask.addEventListener("click", async () => {
-    const text = reviews.value.trim();
-    const q = question.value.trim();
-    if (!text || !q) {
-      answer.textContent = "Enter reviews and a question first.";
-      return;
-    }
-    setBusy(true, `Asking Gemini (${currentTier.toUpperCase()})...`);
-    try {
-      const data = await postJSON("/api/chat", {
-        reviews: text,
-        question: q,
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  // Enforce tier weekly chat limit
+  const usage = getWeeklyUsage();
+  const limit = TIER_LIMITS[currentTier] || 10;
+
+  if (usage.count >= limit) {
+    alert(`You have reached your limit of ${limit} chats for this week on the ${currentTier.toUpperCase()} tier. Please upgrade your plan in Pricing to continue!`);
+    return;
+  }
+
+  if (!activeSessionId) {
+    activeSessionId = Date.now();
+  }
+
+  // Append user message
+  currentConversation.push({ role: 'user', content: text });
+  chatInput.value = "";
+  renderChat();
+
+  // Temporary indicator
+  currentConversation.push({ role: 'assistant', content: `Thinking (${currentTier.toUpperCase()})...` });
+  renderChat();
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reviews: currentConversation.map(m => `${m.role}: ${m.content}`).join("\n"),
+        question: text,
         tier: currentTier
-      });
-      const resultAnswer = data.answer || "No answer returned.";
-      answer.textContent = resultAnswer;
-      saveCurrentChatToHistory(resultAnswer);
-    } catch (error) {
-      answer.textContent = `Error: ${error.message}`;
-    } finally {
-      setBusy(false);
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Request failed");
+
+    currentConversation[currentConversation.length - 1] = { role: 'assistant', content: data.answer || "No response." };
+    incrementWeeklyUsage();
+  } catch (error) {
+    currentConversation[currentConversation.length - 1] = { role: 'assistant', content: `Error: ${error.message}` };
+  }
+
+  renderChat();
+  saveCurrentChatToHistory();
+}
+
+function logout() {
+  localStorage.removeItem("reviewWiseLoggedIn");
+  localStorage.removeItem("reviewWiseUserEmail");
+  window.location.reload();
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function formatAssistantContent(text) {
+  return text.split("\n").map(line => `<p>${escapeHtml(line)}</p>`).join("");
+}
+
+function copyText(btn) {
+  const content = btn.closest('.chat-message').querySelector('.message-content').innerText;
+  navigator.clipboard.writeText(content);
+  btn.textContent = "✓";
+  setTimeout(() => btn.textContent = "📋", 1500);
+}
+
+if (chatInput) {
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   });
 }

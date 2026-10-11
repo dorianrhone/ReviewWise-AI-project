@@ -23,7 +23,6 @@
       </div>
       
       <div class="sidebar-bottom">
-        <!-- Account Status Box in Sidebar -->
         <div id="auth-section" class="sidebar-auth-box" style="margin-bottom: 12px; padding: 10px; background: #212121; border-radius: 8px; border: 1px solid #3f3f46;">
           <div id="logged-out-view">
             <span style="font-size: 11px; color: #9ca3af; display: block; margin-bottom: 8px;">Account Access</span>
@@ -51,47 +50,30 @@
     <main class="chat-main">
       <header class="chat-header">
         <h1>ReviewWise AI</h1>
-        <!-- Header links with Login and Sign Up removed -->
         <div class="header-links">
         </div>
       </header>
 
-      <!-- Welcome Hero / Conversational Greeting -->
+      <!-- Welcome Hero (Shown when chat is empty) -->
       <div class="chat-welcome-container" id="welcome-container">
         <h2>What can I help with today?</h2>
         <p>Analyze unstructured customer reviews instantly using Gemini.</p>
-        
-        <!-- Starter Suggestion Chips -->
         <div class="suggestion-chips">
           <button class="chip" onclick="loadSuggestion('Summarize the top 3 complaints from these reviews and suggest fixes.')">Top 3 complaints & fixes</button>
           <button class="chip" onclick="loadSuggestion('What are users praising the most in these customer reviews?')">Highlight top praise</button>
         </div>
       </div>
 
-      <!-- Messages / Interaction Area -->
+      <!-- Dynamic Message Feed -->
       <div class="chat-feed" id="chat-feed">
-        <!-- Input Form Card -->
-        <div class="input-card">
-          <label for="reviews">Paste Customer Reviews</label>
-          <textarea id="reviews" rows="5" placeholder="Paste customer feedback, app reviews, or support notes here..."></textarea>
-          <div class="action-row">
-            <button id="analyze" class="primary-gpt-btn">Analyze Reviews</button>
-          </div>
-        </div>
+        <!-- Messages will be rendered here dynamically -->
+      </div>
 
-        <!-- Gemini Output Display -->
-        <div class="response-card" id="output-card">
-          <h3>Gemini Insights</h3>
-          <pre id="answer" aria-live="polite">Results will appear here...</pre>
-        </div>
-
-        <!-- Follow-up Question Card -->
-        <div class="input-card follow-up-card">
-          <label for="question">Ask a follow-up question</label>
-          <div class="inline-input-row">
-            <input id="question" placeholder="What should we improve first?">
-            <button id="ask" class="secondary-gpt-btn">Ask</button>
-          </div>
+      <!-- Sticky Bottom Input Bar -->
+      <div class="chat-input-container">
+        <div class="chat-input-box">
+          <textarea id="chat-input" rows="1" placeholder="Ask a question or paste reviews..."></textarea>
+          <button id="send-btn" class="send-btn" onclick="sendMessage()">➤</button>
         </div>
       </div>
     </main>

@@ -16,33 +16,33 @@
     <a href="home.html" class="nav-btn secondary">Back to App</a>
   </div>
 
-  <section class="pricing-container">
-    <div class="pricing-grid">
-      <!-- Free Tier -->
-      <div class="pricing-card">
-        <h3>Free Tier</h3>
-        <p class="price">$0<span>/mo</span></p>
-        <p style="color: #9ca3af; font-size: 13px;">Limited access powered by standard Gemini AI.</p>
-        <button class="plan-btn" onclick="selectFreePlan()">Activate Free Plan</button>
-      </div>
-
-      <!-- Pro Tier -->
-      <div class="pricing-card popular">
-        <h3>Pro Tier</h3>
-        <p class="price">$5.99<span>/mo</span></p>
-        <p style="color: #9ca3af; font-size: 13px;">Full subscription with standard Gemini AI capabilities.</p>
-        <button class="plan-btn primary" onclick="goToCheckout('pro')">Subscribe - $5.99/mo</button>
-      </div>
-
-      <!-- Advanced Tier -->
-      <div class="pricing-card">
-        <h3>Advanced Tier</h3>
-        <p class="price">$11.99<span>/mo</span></p>
-        <p style="color: #9ca3af; font-size: 13px;">Unlocked access to a more advanced version of Gemini AI.</p>
-        <button class="plan-btn" onclick="goToCheckout('advanced')">Go Advanced - $11.99/mo</button>
-      </div>
+<section class="pricing-container">
+  <div class="pricing-grid">
+    <!-- Free Tier -->
+    <div class="pricing-card">
+      <h3>Free Tier</h3>
+      <p class="price">$0<span>/mo</span></p>
+      <p style="color: #9ca3af; font-size: 13px;">Standard Gemini access. Up to <strong>10 chats per week</strong>.</p>
+      <button class="plan-btn" onclick="selectFreePlan()">Activate Free Plan</button>
     </div>
-  </section>
+
+    <!-- Pro Tier -->
+    <div class="pricing-card popular">
+      <h3>Pro Tier</h3>
+      <p class="price">$5.99<span>/mo</span></p>
+      <p style="color: #9ca3af; font-size: 13px;">Full subscription capabilities. Up to <strong>50 chats per week</strong>.</p>
+      <button class="plan-btn primary" onclick="goToCheckout('pro')">Subscribe - $5.99/mo</button>
+    </div>
+
+    <!-- Advanced Tier -->
+    <div class="pricing-card">
+      <h3>Advanced Tier</h3>
+      <p class="price">$11.99<span>/mo</span></p>
+      <p style="color: #9ca3af; font-size: 13px;">Unlocked advanced Gemini AI model. Up to <strong>100 chats per week</strong>.</p>
+      <button class="plan-btn" onclick="goToCheckout('advanced')">Go Advanced - $11.99/mo</button>
+    </div>
+  </div>
+</section>
 </main>
 
 <script>
