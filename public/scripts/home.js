@@ -1,3 +1,11 @@
+
+"use strict";
+
+// ==========================================
+// REVIEWWISE AI - HOME.JS
+// ==========================================
+
+// DOM ELEMENTS
 const chatFeed = document.getElementById("chat-feed");
 const chatInput = document.getElementById("chat-input");
 const welcomeContainer = document.getElementById("welcome-container");
@@ -8,6 +16,10 @@ const loggedInView = document.getElementById("logged-in-view");
 const userEmailDisplay = document.getElementById("user-email-display");
 const sendButton = document.getElementById("send-btn");
 
+const toggleSidebarBtn = document.getElementById("toggle-sidebar-btn");
+const appLayout = document.querySelector(".app-layout");
+
+// APPLICATION STATE
 let supabaseClient = null;
 let currentUser = null;
 
@@ -16,8 +28,16 @@ let activeSessionId = null;
 let savedConversations = [];
 let isSending = false;
 
+let currentTier = "free";
+let subscriptionVerified = false;
+
+let monthlyUsage = {
+    month: "",
+    chats: 0
+};
+
 // ==========================================
-// SUBSCRIPTION TIERS - MONTHLY DEMO LIMITS
+// SUBSCRIPTION TIERS
 // ==========================================
 
 const TIER_LIMITS = {
@@ -41,13 +61,6 @@ const TIER_LIMITS = {
     }
 };
 
-let currentTier = "free";
-
-let monthlyUsage = {
-    month: "",
-    chats: 0
-};
-
 // ==========================================
 // INITIALIZE APPLICATION
 // ==========================================
@@ -64,11 +77,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ==========================================
-// SIDEBAR TOGGLE & SHORTCUT
+// SIDEBAR TOGGLE
 // ==========================================
-
-const toggleSidebarBtn = document.getElementById("toggle-sidebar-btn");
-const appLayout = document.querySelector(".app-layout");
 
 function toggleSidebar() {
     if (appLayout) {
@@ -77,39 +87,70 @@ function toggleSidebar() {
 }
 
 if (toggleSidebarBtn) {
-    toggleSidebarBtn.addEventListener("click", toggleSidebar);
+    toggleSidebarBtn.addEventListener(
+        "click",
+        toggleSidebar
+    );
 }
 
-// Global Keyboard Shortcut: Ctrl + Shift + S
-document.addEventListener("keydown", (event) => {
-    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
+// Ctrl + Shift + S
+document.addEventListener("keydown", event => {
+    if (
+        event.ctrlKey &&
+        event.shiftKey &&
+        event.key.toLowerCase() === "s"
+    ) {
         event.preventDefault();
         toggleSidebar();
     }
 });
 
 // ==========================================
-// SUPABASE AUTHENTICATION
+// SUPABASE INITIALIZATION
+// ==========================================
+
+async function initializeSupabase() {
+    if (supabaseClient) {
+        return supabaseClient;
+    }
+
+    const response = await fetch("/api/config");
+
+    if (!response.ok) {
+        throw new Error(
+            "Unable to load Supabase configuration."
+        );
+    }
+
+    const config = await response.json();
+
+    if (!config.supabaseUrl || !config.supabaseKey) {
+        throw new Error(
+            "Supabase configuration is missing."
+        );
+    }
+
+    if (!window.supabase) {
+        throw new Error(
+            "Supabase JavaScript library is not loaded."
+        );
+    }
+
+    supabaseClient = window.supabase.createClient(
+        config.supabaseUrl,
+        config.supabaseKey
+    );
+
+    return supabaseClient;
+}
+
+// ==========================================
+// AUTHENTICATION
 // ==========================================
 
 async function initializeHomeAuth() {
     try {
-        const response = await fetch("/api/config");
-
-        if (!response.ok) {
-            throw new Error("Unable to load Supabase configuration.");
-        }
-
-        const config = await response.json();
-
-        if (!window.supabase) {
-            throw new Error("Supabase library is not loaded.");
-        }
-
-        supabaseClient = window.supabase.createClient(
-            config.supabaseUrl,
-            config.supabaseKey
-        );
+        await initializeSupabase();
 
         const { data, error } =
             await supabaseClient.auth.getUser();
@@ -123,78 +164,136 @@ async function initializeHomeAuth() {
         if (currentUser) {
             loggedOutView.style.display = "none";
             loggedInView.style.display = "block";
-            userEmailDisplay.textContent = currentUser.email;
 
-            loadSubscriptionTier();
+            userEmailDisplay.textContent =
+                currentUser.email || "Signed-in user";
+
+            try {
+                await loadSubscriptionTier();
+            } catch (subscriptionError) {
+                console.error(
+                    "Unable to load subscription or monthly usage:",
+                    subscriptionError
+                );
+
+                subscriptionVerified = false;
+                monthlyUsage = {
+                    month: "",
+                    chats: 0
+                };
+            }
+
         } else {
             loggedOutView.style.display = "block";
             loggedInView.style.display = "none";
-            currentTier = "free";
-        }
 
-        updateTierBadgeUI();
+            currentTier = "free";
+            subscriptionVerified = false;
+
+            monthlyUsage = {
+                month: "",
+                chats: 0
+            };
+        }
 
     } catch (error) {
         console.error("Authentication error:", error);
 
         currentUser = null;
         currentTier = "free";
+        subscriptionVerified = false;
 
         loggedOutView.style.display = "block";
         loggedInView.style.display = "none";
-
-        updateTierBadgeUI();
     }
+
+    updateTierBadgeUI();
 }
 
 // ==========================================
-// DEMO SUBSCRIPTION MANAGEMENT
+// AUTHENTICATED API HELPERS
 // ==========================================
 
+async function getAccessToken() {
+    if (!supabaseClient) {
+        throw new Error(
+            "Supabase has not been initialized."
+        );
+    }
+
+    const { data, error } =
+        await supabaseClient.auth.getSession();
+
+    if (error || !data.session) {
+        throw new Error(
+            "Your session has expired. Please sign in again."
+        );
+    }
+
+    return data.session.access_token;
+}
+
+async function authenticatedFetch(url, options = {}) {
+    const token = await getAccessToken();
+
+    return fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+// ==========================================
+// LOAD SUBSCRIPTION FROM EXPRESS
+// ==========================================
 
 async function loadSubscriptionTier() {
     if (!currentUser || !supabaseClient) {
         currentTier = "free";
-        monthlyUsage = { month: "", chats: 0 };
+        subscriptionVerified = false;
+
+        monthlyUsage = {
+            month: "",
+            chats: 0
+        };
+
         updateTierBadgeUI();
         return;
     }
 
-    const { data: sessionData, error: sessionError } =
-        await supabaseClient.auth.getSession();
+    subscriptionVerified = false;
 
-    if (sessionError || !sessionData.session) {
-        throw new Error("Please sign in again.");
-    }
-
-    const response = await fetch("/api/subscription", {
-        headers: {
-            Authorization:
-                `Bearer ${sessionData.session.access_token}`
-        }
-    });
+    const response = await authenticatedFetch(
+        "/api/subscription"
+    );
 
     if (!response.ok) {
-        throw new Error("Unable to load subscription.");
+        throw new Error(
+            "Unable to load subscription."
+        );
     }
 
     const subscription = await response.json();
 
     if (!TIER_LIMITS[subscription.tier]) {
-        throw new Error("Invalid subscription tier.");
+        throw new Error(
+            "Invalid subscription tier."
+        );
     }
 
     currentTier = subscription.tier;
 
     await loadMonthlyUsage();
+
+    subscriptionVerified = true;
     updateTierBadgeUI();
 }
-
 
 // ==========================================
 // MONTHLY USAGE TRACKING
 // ==========================================
-
 
 function getMonthlyUsage() {
     return monthlyUsage;
@@ -202,13 +301,20 @@ function getMonthlyUsage() {
 
 async function loadMonthlyUsage() {
     if (!currentUser || !supabaseClient) {
-        monthlyUsage = { month: "", chats: 0 };
+        monthlyUsage = {
+            month: "",
+            chats: 0
+        };
+
         updateTierBadgeUI();
         return;
     }
 
-    // Get current month in UTC
-    const month = new Date().toISOString().slice(0, 7);
+    // UTC calendar month
+    const month = new Date()
+        .toISOString()
+        .slice(0, 7);
+
     const monthStart = `${month}-01`;
 
     const { data, error } = await supabaseClient
@@ -230,6 +336,62 @@ async function loadMonthlyUsage() {
     updateTierBadgeUI();
 }
 
+// ==========================================
+// UPDATE SUBSCRIPTION SIDEBAR
+// ==========================================
+
+function updateTierBadgeUI() {
+    if (!activeTierName) return;
+
+    const tier =
+        TIER_LIMITS[currentTier] || TIER_LIMITS.free;
+
+    if (!currentUser) {
+        activeTierName.innerHTML = `
+            Free Tier ($0.00/mo)
+            <br>
+            <span style="
+                font-size: 11px;
+                color: #9ca3af;
+                font-weight: normal;
+            ">
+                Sign in to track usage
+            </span>
+        `;
+        return;
+    }
+
+    if (!subscriptionVerified) {
+        activeTierName.innerHTML = `
+            Subscription unavailable
+            <br>
+            <span style="
+                font-size: 11px;
+                color: #9ca3af;
+                font-weight: normal;
+            ">
+                Unable to verify plan or usage
+            </span>
+        `;
+        return;
+    }
+
+    const usage = getMonthlyUsage();
+
+    activeTierName.innerHTML = `
+        ${tier.name} Tier ($${tier.price.toFixed(2)}/mo)
+        <br>
+        <span style="
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: normal;
+        ">
+            Chats: ${usage.chats}/${tier.chats} this month
+            <br>
+            Prompts per chat: ${tier.prompts}
+        </span>
+    `;
+}
 
 // ==========================================
 // CHAT SUGGESTIONS
@@ -260,16 +422,20 @@ function startNewChat() {
 // CREATE CONVERSATION IN SUPABASE
 // ==========================================
 
-
 async function createConversation(firstMessage) {
     if (!currentUser || !supabaseClient) {
         throw new Error("Please sign in first.");
     }
 
+    if (!subscriptionVerified) {
+        throw new Error(
+            "Subscription information is unavailable."
+        );
+    }
+
     const title =
         firstMessage.substring(0, 40) || "New Chat";
 
-    // Create conversation through the Supabase quota function
     const { data, error } = await supabaseClient.rpc(
         "create_limited_conversation",
         {
@@ -281,7 +447,6 @@ async function createConversation(firstMessage) {
         throw new Error(error.message);
     }
 
-    // The database function returns the conversation UUID
     activeSessionId = data;
 
     await loadChatHistoryUI();
@@ -289,12 +454,15 @@ async function createConversation(firstMessage) {
     return { id: data };
 }
 
-
 // ==========================================
 // SAVE MESSAGE TO SUPABASE
 // ==========================================
 
-async function saveMessage(role, content, conversationId = activeSessionId) {
+async function saveMessage(
+    role,
+    content,
+    conversationId = activeSessionId
+) {
     if (!currentUser || !conversationId) {
         throw new Error("No active conversation.");
     }
@@ -307,11 +475,13 @@ async function saveMessage(role, content, conversationId = activeSessionId) {
             content
         });
 
-    if (error) throw error;
+    if (error) {
+        throw error;
+    }
 }
 
 // ==========================================
-// LOAD CHAT HISTORY
+// LOAD SAVED CONVERSATIONS
 // ==========================================
 
 async function loadChatHistoryUI() {
@@ -329,10 +499,16 @@ async function loadChatHistoryUI() {
         .from("conversations")
         .select("id, title, created_at")
         .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", {
+            ascending: false
+        });
 
     if (error) {
-        console.error("Unable to load conversations:", error);
+        console.error(
+            "Unable to load conversations:",
+            error
+        );
+
         chatHistoryList.textContent =
             "Unable to load saved chats.";
         return;
@@ -356,6 +532,7 @@ async function loadChatHistoryUI() {
         }
 
         const titleSpan = document.createElement("span");
+
         titleSpan.textContent = item.title;
         titleSpan.style.flex = "1";
         titleSpan.style.overflow = "hidden";
@@ -370,6 +547,7 @@ async function loadChatHistoryUI() {
         };
 
         const deleteBtn = document.createElement("button");
+
         deleteBtn.textContent = "✕";
         deleteBtn.title = "Delete Chat";
         deleteBtn.style.background = "transparent";
@@ -388,6 +566,7 @@ async function loadChatHistoryUI() {
 
         div.appendChild(titleSpan);
         div.appendChild(deleteBtn);
+
         chatHistoryList.appendChild(div);
     });
 }
@@ -403,11 +582,19 @@ async function openChatSession(id) {
         .from("messages")
         .select("id, role, content, created_at")
         .eq("conversation_id", id)
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true });
+        .order("created_at", {
+            ascending: true
+        })
+        .order("id", {
+            ascending: true
+        });
 
     if (error) {
-        console.error("Unable to open chat:", error);
+        console.error(
+            "Unable to open chat:",
+            error
+        );
+
         alert("Unable to load this conversation.");
         return;
     }
@@ -455,6 +642,16 @@ async function deleteChatSession(id) {
     }
 
     await loadChatHistoryUI();
+
+    // Deleting chats does not refund monthly usage.
+    try {
+        await loadMonthlyUsage();
+    } catch (error) {
+        console.error(
+            "Unable to refresh monthly usage:",
+            error
+        );
+    }
 }
 
 // ==========================================
@@ -479,7 +676,9 @@ function renderChat() {
 
     currentConversation.forEach(msg => {
         const msgDiv = document.createElement("div");
-        msgDiv.className = `chat-message ${msg.role}`;
+
+        msgDiv.className =
+            `chat-message ${msg.role}`;
 
         if (msg.role === "user") {
             msgDiv.innerHTML = `
@@ -493,13 +692,27 @@ function renderChat() {
                     ${formatAssistantContent(msg.content)}
                 </div>
                 <div class="message-actions">
-                    <button class="action-btn"
+                    <button
+                        class="action-btn"
                         title="Copy"
-                        onclick="copyText(this)">📋</button>
-                    <button class="action-btn" title="Dislike">👎</button>
-                    <button class="action-btn" title="Share">📤</button>
-                    <button class="action-btn" title="Read Aloud">🔊</button>
-                    <button class="action-btn" title="Regenerate">🔄</button>
+                        onclick="copyText(this)"
+                    >📋</button>
+                    <button
+                        class="action-btn"
+                        title="Dislike"
+                    >👎</button>
+                    <button
+                        class="action-btn"
+                        title="Share"
+                    >📤</button>
+                    <button
+                        class="action-btn"
+                        title="Read Aloud"
+                    >🔊</button>
+                    <button
+                        class="action-btn"
+                        title="Regenerate"
+                    >🔄</button>
                 </div>
             `;
         }
@@ -518,11 +731,19 @@ async function sendMessage() {
     if (isSending) return;
 
     const text = chatInput.value.trim();
+
     if (!text) return;
 
     if (!currentUser || !supabaseClient) {
         alert("Please sign in to use ReviewWise AI.");
         window.location.href = "login.html";
+        return;
+    }
+
+    if (!subscriptionVerified) {
+        alert(
+            "Unable to verify your subscription. Please refresh and try again."
+        );
         return;
     }
 
@@ -532,6 +753,8 @@ async function sendMessage() {
         message => message.role === "user"
     ).length;
 
+    // Frontend check for user experience only.
+    // Secure enforcement must be added to Express.
     if (promptsUsed >= tier.prompts) {
         alert(
             `This chat has reached its limit of ${tier.prompts} prompts. Please start a new chat.`
@@ -552,7 +775,9 @@ async function sendMessage() {
 
     isSending = true;
 
-    if (sendButton) sendButton.disabled = true;
+    if (sendButton) {
+        sendButton.disabled = true;
+    }
 
     const previousMessages = currentConversation.slice();
     const previousSessionId = activeSessionId;
@@ -567,8 +792,13 @@ async function sendMessage() {
 
         const conversationId = activeSessionId;
 
-        // Save user prompt first
-        await saveMessage("user", text, conversationId);
+        // Save user prompt
+        await saveMessage(
+            "user",
+            text,
+            conversationId
+        );
+
         userMessageSaved = true;
 
         currentConversation.push({
@@ -587,25 +817,31 @@ async function sendMessage() {
 
         renderChat();
 
-        // Existing Gemini endpoint
-        const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                reviews: [
-                    ...previousMessages,
-                    { role: "user", content: text }
-                ]
-                    .map(message =>
-                        `${message.role}: ${message.content}`
-                    )
-                    .join("\n"),
-                question: text,
-                tier: currentTier
-            })
-        });
+        // Authenticated Gemini request
+        const response = await authenticatedFetch(
+            "/api/chat",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    conversationId,
+                    reviews: [
+                        ...previousMessages,
+                        {
+                            role: "user",
+                            content: text
+                        }
+                    ]
+                        .map(message =>
+                            `${message.role}: ${message.content}`
+                        )
+                        .join("\n"),
+                    question: text
+                })
+            }
+        );
 
         let data;
 
@@ -660,11 +896,21 @@ async function sendMessage() {
     } finally {
         isSending = false;
 
-        if (sendButton) sendButton.disabled = false;
+        if (sendButton) {
+            sendButton.disabled = false;
+        }
 
         renderChat();
-        await loadChatHistoryUI();
-        
+
+        try {
+            await loadChatHistoryUI();
+        } catch (historyError) {
+            console.error(
+                "Unable to refresh chat history:",
+                historyError
+            );
+        }
+
         try {
             await loadMonthlyUsage();
         } catch (usageError) {
@@ -673,11 +919,7 @@ async function sendMessage() {
                 usageError
             );
         }
-
     }
-
-    
-
 }
 
 // ==========================================
@@ -699,18 +941,32 @@ async function logout() {
 
         currentUser = null;
         currentTier = "free";
+        subscriptionVerified = false;
+
+        monthlyUsage = {
+            month: "",
+            chats: 0
+        };
+
         currentConversation = [];
         activeSessionId = null;
         savedConversations = [];
 
-        localStorage.removeItem("reviewWiseLoggedIn");
-        localStorage.removeItem("reviewWiseUserEmail");
+        localStorage.removeItem(
+            "reviewWiseLoggedIn"
+        );
+
+        localStorage.removeItem(
+            "reviewWiseUserEmail"
+        );
 
         window.location.href = "login.html";
 
     } catch (error) {
         console.error("Logout error:", error);
-        alert("Unable to sign out. Please try again.");
+        alert(
+            "Unable to sign out. Please try again."
+        );
     }
 }
 
@@ -729,12 +985,14 @@ function escapeHtml(str) {
 function formatAssistantContent(text) {
     return String(text)
         .split("\n")
-        .map(line => `<p>${escapeHtml(line)}</p>`)
+        .map(line =>
+            `<p>${escapeHtml(line)}</p>`
+        )
         .join("");
 }
 
 // ==========================================
-// COPY RESPONSE
+// COPY ASSISTANT RESPONSE
 // ==========================================
 
 function copyText(btn) {
@@ -744,7 +1002,9 @@ function copyText(btn) {
 
     if (!element) return;
 
-    navigator.clipboard.writeText(element.innerText);
+    navigator.clipboard.writeText(
+        element.innerText
+    );
 
     btn.textContent = "✓";
 
@@ -759,7 +1019,10 @@ function copyText(btn) {
 
 if (chatInput) {
     chatInput.addEventListener("keydown", event => {
-        if (event.key === "Enter" && !event.shiftKey) {
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey
+        ) {
             event.preventDefault();
             sendMessage();
         }
