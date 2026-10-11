@@ -105,6 +105,6 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // Start backend server
-app.listen(PORT, () => {
-    console.log(`ReviewWise AI running at http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`ReviewWise AI server running on port ${PORT}`);
 });
