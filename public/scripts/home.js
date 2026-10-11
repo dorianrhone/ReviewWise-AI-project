@@ -1,4 +1,3 @@
-
 const chatFeed = document.getElementById("chat-feed");
 const chatInput = document.getElementById("chat-input");
 const welcomeContainer = document.getElementById("welcome-container");
@@ -56,6 +55,31 @@ document.addEventListener("DOMContentLoaded", async () => {
         updateTierBadgeUI();
     } catch (error) {
         console.error("Application initialization error:", error);
+    }
+});
+
+// ==========================================
+// SIDEBAR TOGGLE & SHORTCUT
+// ==========================================
+
+const toggleSidebarBtn = document.getElementById("toggle-sidebar-btn");
+const appLayout = document.querySelector(".app-layout");
+
+function toggleSidebar() {
+    if (appLayout) {
+        appLayout.classList.toggle("sidebar-closed");
+    }
+}
+
+if (toggleSidebarBtn) {
+    toggleSidebarBtn.addEventListener("click", toggleSidebar);
+}
+
+// Global Keyboard Shortcut: Ctrl + Shift + S
+document.addEventListener("keydown", (event) => {
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        toggleSidebar();
     }
 });
 
@@ -646,8 +670,6 @@ async function sendMessage() {
             alert(message);
         }
 
-        // If the user prompt was saved, it remains in Supabase.
-        // The user can reopen the chat and try again.
         if (!userMessageSaved && previousSessionId) {
             activeSessionId = previousSessionId;
         }
@@ -686,12 +708,8 @@ async function logout() {
         activeSessionId = null;
         savedConversations = [];
 
-        // Remove old simulated login flags
         localStorage.removeItem("reviewWiseLoggedIn");
         localStorage.removeItem("reviewWiseUserEmail");
-
-        // Do not delete saved chats from Supabase.
-        // Do not reset the user's monthly usage.
 
         window.location.href = "login.html";
 
