@@ -12,14 +12,40 @@ const ai = new GoogleGenAI({
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 // Send a prompt to Gemini and return its response
-async function askGemini(prompt) {
-    const result = await ai.models.generateContent({
-        model: MODEL,
-        contents: prompt
-    });
 
-    return result.text || "No answer was returned.";
+async function askGemini(prompt) {
+    const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const result = await ai.models.generateContent({
+                model: MODEL,
+                contents: prompt
+            });
+
+            return result.text || "No answer was returned.";
+
+        } catch (error) {
+            if (
+                error.status === 503 &&
+                attempt < maxAttempts
+            ) {
+                console.log(
+                    `Gemini busy. Retrying attempt ${attempt + 1}...`
+                );
+
+                await new Promise(resolve =>
+                    setTimeout(resolve, attempt * 2000)
+                );
+
+                continue;
+            }
+
+            throw error;
+        }
+    }
 }
+
 
 // Analyze customer reviews
 async function analyzeReviews(reviews, businessName = "this business") {
