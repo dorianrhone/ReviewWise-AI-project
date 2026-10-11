@@ -3,6 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
 
 // Import Gemini AI functions
 const {
@@ -47,6 +48,76 @@ app.get("/api/me", requireAuth, (req, res) => {
     });
 });
 
+
+// Get the authenticated user's subscription
+app.get("/api/subscription", requireAuth, async (req, res) => {
+    try {
+        // Create a Supabase client using the user's token
+        // so Row Level Security applies to their account.
+        const userSupabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_PUBLISHABLE_KEY,
+            {
+                global: {
+                    headers: {
+                        Authorization: `Bearer ${req.accessToken}`
+                    }
+                },
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
+
+        // Read subscription from PostgreSQL
+        const { data, error } = await userSupabase
+            .from("subscriptions")
+            .select("tier")
+            .eq("user_id", req.user.id)
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        // Subscription limits
+        const limits = {
+            free: {
+                chats: 10,
+                prompts: 5
+            },
+            pro: {
+                chats: 20,
+                prompts: 10
+            },
+            advanced: {
+                chats: 30,
+                prompts: 15
+            }
+        };
+
+        const tier = data.tier;
+
+        if (!limits[tier]) {
+            throw new Error("Invalid subscription tier.");
+        }
+
+        // Send subscription information to frontend
+        res.json({
+            tier: tier,
+            chatsPerMonth: limits[tier].chats,
+            promptsPerChat: limits[tier].prompts
+        });
+
+    } catch (error) {
+        console.error("Subscription error:", error);
+
+        res.status(500).json({
+            error: "Unable to load subscription."
+        });
+    }
+});
 
 // Public Supabase configuration for browser authentication
 app.get("/api/config", (req, res) => {
