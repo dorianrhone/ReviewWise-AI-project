@@ -1,62 +1,133 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>Pricing Plans - ReviewWise AI</title>
+
     <link rel="stylesheet" href="styles.css">
+    <script src="scripts/pricing.js" defer></script>
 </head>
-<body>
-<main class="pricing-main">  
-  <div class="chat-header" style="margin-bottom: 16px;">
-    <div>
-      <h1>Subscription Plans</h1>
-      <p style="color: #9ca3af; margin: 4px 0 0 0;">Select your business intelligence plan.</p>
-    </div>
-    <a href="home.html" class="nav-btn secondary">Back to App</a>
-  </div>
 
-<section class="pricing-container">
-  <div class="pricing-grid">
-    <!-- Free Tier -->
-    <div class="pricing-card">
-      <h3>Free Tier</h3>
-      <p class="price">$0<span>/mo</span></p>
-      <p style="color: #9ca3af; font-size: 13px;">Standard Gemini access. Up to <strong>10 chats per week</strong>.</p>
-      <button class="plan-btn" onclick="selectFreePlan()">Activate Free Plan</button>
+<body class="chatgpt-theme">
+
+<main class="pricing-main">
+
+    <div class="chat-header" style="margin-bottom: 16px;">
+        <div>
+            <h1>Subscription Plans</h1>
+            <p style="color: #9ca3af; margin: 4px 0 0 0;">
+                Choose the right ReviewWise AI plan for your business.
+            </p>
+        </div>
+
+        <a href="home.html" class="nav-btn secondary">
+            Back to App
+        </a>
     </div>
 
-    <!-- Pro Tier -->
-    <div class="pricing-card popular">
-      <h3>Pro Tier</h3>
-      <p class="price">$5.99<span>/mo</span></p>
-      <p style="color: #9ca3af; font-size: 13px;">Full subscription capabilities. Up to <strong>50 chats per week</strong>.</p>
-      <button class="plan-btn primary" onclick="goToCheckout('pro')">Subscribe - $5.99/mo</button>
-    </div>
+    <section class="pricing-container">
 
-    <!-- Advanced Tier -->
-    <div class="pricing-card">
-      <h3>Advanced Tier</h3>
-      <p class="price">$11.99<span>/mo</span></p>
-      <p style="color: #9ca3af; font-size: 13px;">Unlocked advanced Gemini AI model. Up to <strong>100 chats per week</strong>.</p>
-      <button class="plan-btn" onclick="goToCheckout('advanced')">Go Advanced - $11.99/mo</button>
-    </div>
-  </div>
-</section>
+        <div class="pricing-grid">
+
+            <!-- FREE TIER -->
+            <div class="pricing-card">
+                <h3>Free Tier</h3>
+
+                <p class="price">
+                    $0<span>/mo</span>
+                </p>
+
+                <p>
+                    Get started with AI-powered business insights.
+                </p>
+
+                <ul>
+                    <li>10 chats per month</li>
+                    <li>5 prompts per chat</li>
+                    <li>Gemini AI review analysis</li>
+                    <li>Saved chat history</li>
+                </ul>
+
+                <button
+                    class="plan-btn"
+                    onclick="selectFreePlan()">
+                    Activate Free Plan
+                </button>
+            </div>
+
+            <!-- PRO TIER -->
+            <div class="pricing-card popular">
+
+                <h3>Pro Tier</h3>
+
+                <p class="price">
+                    $5.99<span>/mo</span>
+                </p>
+
+                <p>
+                    More conversations for growing businesses.
+                </p>
+
+                <ul>
+                    <li>20 chats per month</li>
+                    <li>10 prompts per chat</li>
+                    <li>Gemini AI review analysis</li>
+                    <li>Saved chat history</li>
+                </ul>
+
+                <button
+                    class="plan-btn primary"
+                    onclick="goToCheckout('pro')">
+                    Choose Pro - $5.99/mo
+                </button>
+            </div>
+
+            <!-- ADVANCED TIER -->
+            <div class="pricing-card">
+
+                <h3>Advanced Tier</h3>
+
+                <p class="price">
+                    $11.99<span>/mo</span>
+                </p>
+
+                <p>
+                    Higher usage limits for active businesses.
+                </p>
+
+                <ul>
+                    <li>30 chats per month</li>
+                    <li>15 prompts per chat</li>
+                    <li>Gemini AI review analysis</li>
+                    <li>Saved chat history</li>
+                </ul>
+
+                <button
+                    class="plan-btn"
+                    onclick="goToCheckout('advanced')">
+                    Choose Advanced - $11.99/mo
+                </button>
+            </div>
+
+        </div>
+
+        <p style="
+            color: #9ca3af;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 24px;
+        ">
+            Demo subscriptions only.
+            No real payments or recurring charges are processed.
+        </p>
+
+    </section>
+
 </main>
 
-<script>
-  function selectFreePlan() {
-    localStorage.setItem("reviewWiseTier", "free");
-    localStorage.removeItem("reviewWisePaidStatus");
-    alert("Switched to Free Tier.");
-    window.location.href = "home.html";
-  }
-
-  function goToCheckout(tier) {
-    localStorage.setItem("pendingCheckoutTier", tier);
-    window.location.href = "checkout.html";
-  }
-</script>
 </body>
 </html>
