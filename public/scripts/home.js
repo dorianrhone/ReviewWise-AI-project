@@ -4,14 +4,14 @@ const welcomeContainer = document.getElementById("welcome-container");
 const chatHistoryList = document.getElementById("chat-history-list");
 const activeTierName = document.getElementById("active-tier-name");
 const loggedOutView = document.getElementById("logged-out-view");
-const loggedInView = document.getElementById("logged-in-view");
+const loggedInView = document.getElementById("loggedIn-view");
 const userEmailDisplay = document.getElementById("user-email-display");
 
 // Check Authentication State
 const isLoggedIn = localStorage.getItem("reviewWiseLoggedIn") === "true";
 const savedEmail = localStorage.getItem("reviewWiseUserEmail") || "";
 
-// Security Check: Verify paid subscription state
+// Restore demo subscription state (client-side storage is not secure for production)
 const isPaidActive = localStorage.getItem("reviewWisePaidStatus") === "active";
 let currentTier = localStorage.getItem("reviewWiseTier");
 
@@ -47,9 +47,20 @@ document.addEventListener("DOMContentLoaded", () => {
   renderChat();
 });
 
+// Helper utility to safely read and parse JSON from localStorage
+function readStoredJSON(key, defaultValue) {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (e) {
+    console.error(`Error reading ${key} from localStorage:`, e);
+    return defaultValue;
+  }
+}
+
 // Manage weekly usage count & window reset (7-day window)
 function getWeeklyUsage() {
-  const usageData = JSON.parse(localStorage.getItem("reviewWiseUsage") || "{}");
+  const usageData = readStoredJSON("reviewWiseUsage", {});
   const now = Date.now();
   const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -102,7 +113,7 @@ function startNewChat() {
 function saveCurrentChatToHistory() {
   if (currentConversation.length === 0) return;
   
-  let history = JSON.parse(localStorage.getItem("reviewWiseChatHistory") || "[]");
+  let history = readStoredJSON("reviewWiseChatHistory", []);
   const firstUserMsg = currentConversation.find(m => m.role === 'user');
   const titleSnippet = firstUserMsg ? firstUserMsg.content.substring(0, 30) + '...' : 'Conversation';
 
@@ -127,7 +138,7 @@ function saveCurrentChatToHistory() {
 
 function loadChatHistoryUI() {
   if (!chatHistoryList) return;
-  const history = JSON.parse(localStorage.getItem("reviewWiseChatHistory") || "[]");
+  const history = readStoredJSON("reviewWiseChatHistory", []);
   chatHistoryList.innerHTML = "";
 
   if (history.length === 0) {
@@ -138,14 +149,66 @@ function loadChatHistoryUI() {
   history.forEach(item => {
     const div = document.createElement("div");
     div.className = "history-item";
-    div.textContent = item.title;
-    div.onclick = () => {
+    
+    // Highlight the active session item if applicable
+    if (item.id === activeSessionId) {
+      div.style.background = "rgba(255, 255, 255, 0.05)";
+    }
+
+    // Title span
+    const titleSpan = document.createElement("span");
+    titleSpan.textContent = item.title;
+    titleSpan.style.flex = "1";
+    titleSpan.style.overflow = "hidden";
+    titleSpan.style.textOverflow = "ellipsis";
+    titleSpan.style.whiteSpace = "nowrap";
+    titleSpan.style.cursor = "pointer";
+    titleSpan.onclick = () => {
       activeSessionId = item.id;
       currentConversation = item.messages;
       renderChat();
+      loadChatHistoryUI(); // Refresh UI to update active highlight
     };
+
+    // Delete button
+    const deleteBtn = document.createElement("button");
+    deleteBtn.innerHTML = "✕";
+    deleteBtn.title = "Delete Chat";
+    deleteBtn.style.background = "transparent";
+    deleteBtn.style.border = "none";
+    deleteBtn.style.color = "#9ca3af";
+    deleteBtn.style.cursor = "pointer";
+    deleteBtn.style.fontSize = "12px";
+    deleteBtn.style.padding = "2px 6px";
+    deleteBtn.style.borderRadius = "4px";
+    
+    deleteBtn.onmouseover = () => { deleteBtn.style.color = "#ef4444"; };
+    deleteBtn.onmouseout = () => { deleteBtn.style.color = "#9ca3af"; };
+    
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation(); // Prevent triggering the parent click event
+      deleteChatSession(item.id);
+    };
+
+    div.appendChild(titleSpan);
+    div.appendChild(deleteBtn);
     chatHistoryList.appendChild(div);
   });
+}
+
+function deleteChatSession(id) {
+  let history = readStoredJSON("reviewWiseChatHistory", []);
+  history = history.filter(item => item.id !== id);
+  localStorage.setItem("reviewWiseChatHistory", JSON.stringify(history));
+
+  // If the user deleted the currently active chat, reset the view
+  if (activeSessionId === id) {
+    currentConversation = [];
+    activeSessionId = null;
+    renderChat();
+  }
+
+  loadChatHistoryUI();
 }
 
 function renderChat() {
@@ -199,13 +262,16 @@ async function sendMessage() {
     activeSessionId = Date.now();
   }
 
-  // Append user message
+  // Capture prior context before adding the pending assistant message.
+  const previousMessages = currentConversation.slice();
   currentConversation.push({ role: 'user', content: text });
   chatInput.value = "";
   renderChat();
 
-  // Temporary indicator
-  currentConversation.push({ role: 'assistant', content: `Thinking (${currentTier.toUpperCase()})...` });
+  currentConversation.push({
+    role: 'assistant',
+    content: `Thinking (${currentTier.toUpperCase()})...`
+  });
   renderChat();
 
   try {
@@ -213,18 +279,34 @@ async function sendMessage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        reviews: currentConversation.map(m => `${m.role}: ${m.content}`).join("\n"),
+        reviews: [...previousMessages, { role: 'user', content: text }]
+          .map(message => `${message.role}: ${message.content}`)
+          .join("\n"),
         question: text,
         tier: currentTier
       })
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Request failed");
 
-    currentConversation[currentConversation.length - 1] = { role: 'assistant', content: data.answer || "No response." };
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("The server returned an invalid response.");
+    }
+    if (!response.ok) {
+      throw new Error(data.error || `Request failed (${response.status})`);
+    }
+
+    currentConversation[currentConversation.length - 1] = {
+      role: 'assistant',
+      content: data.answer || "No response was returned."
+    };
     incrementWeeklyUsage();
   } catch (error) {
-    currentConversation[currentConversation.length - 1] = { role: 'assistant', content: `Error: ${error.message}` };
+    currentConversation[currentConversation.length - 1] = {
+      role: 'assistant',
+      content: `Unable to get a response: ${error.message}. Check that the backend server is running.`
+    };
   }
 
   renderChat();
