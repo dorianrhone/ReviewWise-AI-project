@@ -35,6 +35,19 @@ app.get("/api/health", (req, res) => {
     });
 });
 
+
+// Test Supabase authentication
+app.get("/api/me", requireAuth, (req, res) => {
+    res.json({
+        authenticated: true,
+        user: {
+            id: req.user.id,
+            email: req.user.email
+        }
+    });
+});
+
+
 // Public Supabase configuration for browser authentication
 app.get("/api/config", (req, res) => {
     res.json({
