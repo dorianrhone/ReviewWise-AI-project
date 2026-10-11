@@ -3,41 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReviewWise AI</title>
+    <title>ReviewWise AI - ChatGPT Style</title>
     <link rel="stylesheet" href="styles.css">
-    
 </head>
-<body>
-<main>  
-  <div class="header-row">
-    <div>
-      <h1>ReviewWise AI</h1>
-      <p>Turning Customer Reviews into Huge Business Insights.</p>
-    </div>
-    <div class="nav-links">
-      <a href="pricing.html" class="nav-btn secondary">Pricing Plans</a>
-      <a href="checkout.html" class="nav-btn primary">Checkout</a>
-    </div>
+<body class="chatgpt-theme">
+
+  <!-- App Wrapper for Sidebar Layout -->
+  <div class="app-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <button class="new-chat-btn" onclick="startNewChat()">
+          <span>+</span> New Chat
+        </button>
+        <div class="chat-history-list" id="chat-history-list">
+          <!-- Dynamically populated past chats appear here -->
+        </div>
+      </div>
+      
+      <div class="sidebar-bottom">
+        <!-- Account Status Box in Sidebar -->
+        <div id="auth-section" class="sidebar-auth-box" style="margin-bottom: 12px; padding: 10px; background: #212121; border-radius: 8px; border: 1px solid #3f3f46;">
+          <div id="logged-out-view">
+            <span style="font-size: 11px; color: #9ca3af; display: block; margin-bottom: 8px;">Account Access</span>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <a href="login.html" class="sidebar-nav-link" style="background: #3f3f46; text-align: center;">Sign In</a>
+              <a href="signup.html" class="sidebar-nav-link" style="background: #38bdf8; color: #0f172a; text-align: center;">Sign Up</a>
+            </div>
+          </div>
+          <div id="logged-in-view" style="display: none;">
+            <span style="font-size: 11px; color: #9ca3af; display: block;">Logged in as:</span>
+            <strong id="user-email-display" style="font-size: 12px; color: #38bdf8; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px;">user@company.com</strong>
+            <button onclick="logout()" style="background: #3f3f46; color: #ececec; border: none; padding: 6px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; width: 100%;">Sign Out</button>
+          </div>
+        </div>
+
+        <div id="tier-badge-sidebar" class="sidebar-tier-box">
+          <span>Active Tier:</span>
+          <strong id="active-tier-name">Free Tier ($0/mo)</strong>
+        </div>
+        <a href="pricing.html" class="sidebar-nav-link">Upgrade Plan</a>
+      </div>
+    </aside>
+
+    <!-- Main Chat Workspace -->
+    <main class="chat-main">
+      <header class="chat-header">
+        <h1>ReviewWise AI</h1>
+        <!-- Header links with Login and Sign Up removed -->
+        <div class="header-links">
+          <a href="pricing.html" class="nav-btn secondary">Pricing Options</a>
+        </div>
+      </header>
+
+      <!-- Welcome Hero / Conversational Greeting -->
+      <div class="chat-welcome-container" id="welcome-container">
+        <h2>What can I help with today?</h2>
+        <p>Analyze unstructured customer reviews instantly using Gemini.</p>
+        
+        <!-- Starter Suggestion Chips -->
+        <div class="suggestion-chips">
+          <button class="chip" onclick="loadSuggestion('Summarize the top 3 complaints from these reviews and suggest fixes.')">Top 3 complaints & fixes</button>
+          <button class="chip" onclick="loadSuggestion('What are users praising the most in these customer reviews?')">Highlight top praise</button>
+        </div>
+      </div>
+
+      <!-- Messages / Interaction Area -->
+      <div class="chat-feed" id="chat-feed">
+        <!-- Input Form Card -->
+        <div class="input-card">
+          <label for="reviews">Paste Customer Reviews</label>
+          <textarea id="reviews" rows="5" placeholder="Paste customer feedback, app reviews, or support notes here..."></textarea>
+          <div class="action-row">
+            <button id="analyze" class="primary-gpt-btn">Analyze Reviews</button>
+          </div>
+        </div>
+
+        <!-- Gemini Output Display -->
+        <div class="response-card" id="output-card">
+          <h3>Gemini Insights</h3>
+          <pre id="answer" aria-live="polite">Results will appear here...</pre>
+        </div>
+
+        <!-- Follow-up Question Card -->
+        <div class="input-card follow-up-card">
+          <label for="question">Ask a follow-up question</label>
+          <div class="inline-input-row">
+            <input id="question" placeholder="What should we improve first?">
+            <button id="ask" class="secondary-gpt-btn">Ask</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
   </div>
 
-  <!-- Current Tier Display Banner -->
-  <div id="tier-banner" class="tier-banner">
-    <span>Active Tier: <strong id="active-tier-name">Free Tier ($0/mo)</strong></span>
-    <a href="pricing.html" class="upgrade-link">Upgrade Plan</a>
-  </div>
-
-  <label for="reviews">Customer Reviews</label>
-  <textarea id="reviews" rows="9" placeholder="Paste reviews here"></textarea>
-  <button id="analyze">Analyze Reviews</button>
-  <h2>Gemini Insights</h2>
-  <pre id="answer" aria-live="polite">Results appear here.</pre>
-  <label for="question">Ask a follow-up question</label>
-  <input id="question" placeholder="What should we improve first?">
-  <button id="ask">Ask Gemini</button>
-</main>
-<footer>
-    <p>&copy; 2026 ReviewWise AI. All rights reserved.</p>
-</footer>
 <script src="scripts/home.js" defer></script>
 </body>
 </html>

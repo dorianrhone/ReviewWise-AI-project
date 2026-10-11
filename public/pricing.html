@@ -7,52 +7,46 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main>  
-  <div class="header-row">
+<main class="pricing-main">  
+  <div class="chat-header" style="margin-bottom: 16px;">
     <div>
-      <h1>ReviewWise AI</h1>
-      <p>Choose the right plan for your business intelligence needs.</p>
+      <h1>Subscription Plans</h1>
+      <p style="color: #9ca3af; margin: 4px 0 0 0;">Select your business intelligence plan.</p>
     </div>
     <a href="home.html" class="nav-btn secondary">Back to App</a>
   </div>
 
-  <!-- Pricing Tiers Section -->
   <section class="pricing-container">
-    <h2>Subscription Plans</h2>
     <div class="pricing-grid">
-      <!-- Free Tier (Direct Activation) -->
+      <!-- Free Tier -->
       <div class="pricing-card">
         <h3>Free Tier</h3>
         <p class="price">$0<span>/mo</span></p>
-        <p>Limited access powered by standard Gemini AI.</p>
+        <p style="color: #9ca3af; font-size: 13px;">Limited access powered by standard Gemini AI.</p>
         <button class="plan-btn" onclick="selectFreePlan()">Activate Free Plan</button>
       </div>
 
-      <!-- Pro Tier (Goes to Checkout) -->
+      <!-- Pro Tier -->
       <div class="pricing-card popular">
-        <div class="badge">Most Popular</div>
         <h3>Pro Tier</h3>
         <p class="price">$5.99<span>/mo</span></p>
-        <p>Full subscription with standard Gemini AI capabilities.</p>
+        <p style="color: #9ca3af; font-size: 13px;">Full subscription with standard Gemini AI capabilities.</p>
         <button class="plan-btn primary" onclick="goToCheckout('pro')">Subscribe - $5.99/mo</button>
       </div>
 
-      <!-- Advanced Tier (Goes to Checkout) -->
+      <!-- Advanced Tier -->
       <div class="pricing-card">
         <h3>Advanced Tier</h3>
         <p class="price">$11.99<span>/mo</span></p>
-        <p>Unlocked access to a more advanced version of Gemini AI.</p>
+        <p style="color: #9ca3af; font-size: 13px;">Unlocked access to a more advanced version of Gemini AI.</p>
         <button class="plan-btn" onclick="goToCheckout('advanced')">Go Advanced - $11.99/mo</button>
       </div>
     </div>
   </section>
 </main>
-<footer>
-    <p>&copy; 2026 ReviewWise AI. All rights reserved.</p>
-</footer>
+
 <script>
   function selectFreePlan() {
-    // Explicitly set to free and revert any previous subscription state
     localStorage.setItem("reviewWiseTier", "free");
     localStorage.removeItem("reviewWisePaidStatus");
     alert("Switched to Free Tier.");
@@ -60,7 +54,6 @@
   }
 
   function goToCheckout(tier) {
-    // Store intended target plan for checkout payment processing
     localStorage.setItem("pendingCheckoutTier", tier);
     window.location.href = "checkout.html";
   }

@@ -4,9 +4,17 @@ const answer = document.getElementById("answer");
 const analyze = document.getElementById("analyze");
 const ask = document.getElementById("ask");
 const activeTierName = document.getElementById("active-tier-name");
+const chatHistoryList = document.getElementById("chat-history-list");
+const loggedOutView = document.getElementById("logged-out-view");
+const loggedInView = document.getElementById("logged-in-view");
+const userEmailDisplay = document.getElementById("user-email-display");
+const quickLoginEmail = document.getElementById("quick-login-email");
 
-// SECURITY ENFORCEMENT: Check if user completed a valid paid checkout. 
-// If they left the app or didn't pay, default back strictly to 'free'.
+// Check Authentication State
+const isLoggedIn = localStorage.getItem("reviewWiseLoggedIn") === "true";
+const savedEmail = localStorage.getItem("reviewWiseUserEmail") || "";
+
+// Security Check: Verify paid subscription state
 const isPaidActive = localStorage.getItem("reviewWisePaidStatus") === "active";
 let currentTier = localStorage.getItem("reviewWiseTier");
 
@@ -16,7 +24,6 @@ if (!isPaidActive || (currentTier !== "pro" && currentTier !== "advanced")) {
   localStorage.removeItem("reviewWisePaidStatus");
 }
 
-// Display current tier status badge on load
 document.addEventListener("DOMContentLoaded", () => {
   const tierLabels = {
     free: "Free Tier ($0/mo)",
@@ -26,7 +33,90 @@ document.addEventListener("DOMContentLoaded", () => {
   if (activeTierName) {
     activeTierName.textContent = tierLabels[currentTier] || "Free Tier ($0/mo)";
   }
+
+  // Toggle auth display views in sidebar
+  if (isLoggedIn) {
+    if (loggedOutView) loggedOutView.style.display = "none";
+    if (loggedInView) loggedInView.style.display = "block";
+    if (userEmailDisplay) userEmailDisplay.textContent = savedEmail;
+  } else {
+    if (loggedOutView) loggedOutView.style.display = "block";
+    if (loggedInView) loggedInView.style.display = "none";
+  }
+
+  loadChatHistoryUI();
 });
+
+function quickLogin() {
+  const emailVal = quickLoginEmail ? quickLoginEmail.value.trim() : "";
+  if (!emailVal) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+  localStorage.setItem("reviewWiseLoggedIn", "true");
+  localStorage.setItem("reviewWiseUserEmail", emailVal);
+  window.location.reload();
+}
+
+function logout() {
+  localStorage.removeItem("reviewWiseLoggedIn");
+  localStorage.removeItem("reviewWiseUserEmail");
+  window.location.reload();
+}
+
+function startNewChat() {
+  if (reviews) reviews.value = "";
+  if (question) question.value = "";
+  if (answer) answer.textContent = "Results will appear here...";
+  localStorage.removeItem("reviewWiseActiveSession");
+}
+
+function loadSuggestion(text) {
+  if (reviews) {
+    reviews.value = text;
+    reviews.focus();
+  }
+}
+
+function saveCurrentChatToHistory(summaryText) {
+  let history = JSON.parse(localStorage.getItem("reviewWiseChatHistory") || "[]");
+  const reviewSnippet = reviews.value.trim().substring(0, 30) || "Review Analysis";
+  const sessionItem = {
+    id: Date.now(),
+    title: `Analysis: ${reviewSnippet}...`,
+    reviewsText: reviews.value,
+    answerText: summaryText
+  };
+  
+  history.unshift(sessionItem);
+  if (history.length > 10) history.pop();
+  
+  localStorage.setItem("reviewWiseChatHistory", JSON.stringify(history));
+  localStorage.setItem("reviewWiseActiveSession", JSON.stringify(sessionItem));
+  loadChatHistoryUI();
+}
+
+function loadChatHistoryUI() {
+  if (!chatHistoryList) return;
+  const history = JSON.parse(localStorage.getItem("reviewWiseChatHistory") || "[]");
+  chatHistoryList.innerHTML = "";
+
+  if (history.length === 0) {
+    chatHistoryList.innerHTML = `<div style="font-size: 12px; color: #737373; padding: 8px;">No saved chats yet.</div>`;
+    return;
+  }
+
+  history.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.textContent = item.title;
+    div.onclick = () => {
+      reviews.value = item.reviewsText;
+      answer.textContent = item.answerText;
+    };
+    chatHistoryList.appendChild(div);
+  });
+}
 
 function setBusy(busy, message = "Working...") {
   if (analyze) analyze.disabled = busy;
@@ -60,7 +150,9 @@ if (analyze) {
         reviews: text,
         tier: currentTier
       });
-      answer.textContent = data.summary || "No summary returned.";
+      const resultSummary = data.summary || "No summary returned.";
+      answer.textContent = resultSummary;
+      saveCurrentChatToHistory(resultSummary);
     } catch (error) {
       answer.textContent = `Error: ${error.message}`;
     } finally {
@@ -84,7 +176,9 @@ if (ask) {
         question: q,
         tier: currentTier
       });
-      answer.textContent = data.answer || "No answer returned.";
+      const resultAnswer = data.answer || "No answer returned.";
+      answer.textContent = resultAnswer;
+      saveCurrentChatToHistory(resultAnswer);
     } catch (error) {
       answer.textContent = `Error: ${error.message}`;
     } finally {

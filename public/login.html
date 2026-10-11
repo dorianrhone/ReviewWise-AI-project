@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ReviewWise AI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="chatgpt-theme">
+
+<main class="pricing-main" style="max-width: 440px;">  
+  <div class="chat-header" style="margin-bottom: 20px;">
+    <div>
+      <h1>Welcome Back</h1>
+      <p style="color: #9ca3af; margin: 4px 0 0 0;">Sign in to access your ReviewWise AI workspace.</p>
+    </div>
+    <a href="home.html" class="nav-btn secondary">Back to App</a>
+  </div>
+
+  <section class="pricing-container">
+    <div class="input-card" style="background: #212121; border: 1px solid #3f3f46; border-radius: 12px; padding: 24px;">
+      
+      <!-- Error Message Banner -->
+      <div id="error-msg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 16px;">
+        Invalid email or password. Please try again.
+      </div>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <label for="login-email">Email Address</label>
+        <input type="email" id="login-email" placeholder="name@company.com" required style="margin-bottom: 16px;">
+
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" required style="margin-bottom: 24px;">
+
+        <button type="submit" class="plan-btn primary" style="width: 100%; padding: 12px;">Sign In</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script>
+  // If already logged in, redirect straight to home workspace
+  if (localStorage.getItem("reviewWiseLoggedIn") === "true") {
+    window.location.href = "home.html";
+  }
+
+  // Pre-fill registered email if available
+  document.addEventListener("DOMContentLoaded", () => {
+    const savedEmail = localStorage.getItem("reviewWiseUserEmail") || localStorage.getItem("reviewWiseRegisteredEmail");
+    if (savedEmail) {
+      document.getElementById("login-email").value = savedEmail;
+    }
+  });
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById("login-email").value.trim().toLowerCase();
+    const password = document.getElementById("login-password").value;
+    const errorMsg = document.getElementById("error-msg");
+
+    const accounts = JSON.parse(localStorage.getItem("reviewWiseAccounts") || "[]");
+    
+    // Check against multi-accounts array or legacy single account fallback
+    const matchedAccount = accounts.find(acc => acc.email === email && acc.password === password);
+    const legacyEmail = localStorage.getItem("reviewWiseRegisteredEmail");
+    const legacyPassword = localStorage.getItem("reviewWiseRegisteredPassword");
+    
+    const isValid = matchedAccount || (legacyEmail === email && legacyPassword === password);
+
+    if (!isValid) {
+      errorMsg.style.display = "block";
+      errorMsg.textContent = "Incorrect email or password. Please try again.";
+      return;
+    }
+
+    // Set active session
+    localStorage.setItem("reviewWiseLoggedIn", "true");
+    localStorage.setItem("reviewWiseUserEmail", email);
+    if (matchedAccount) {
+      localStorage.setItem("reviewWiseUserName", matchedAccount.name);
+    }
+
+    // Redirect to home dashboard
+    window.location.href = "home.html";
+  }
+</script>
+</body>
+</html>

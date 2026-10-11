@@ -7,22 +7,22 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main>
-  <div class="header-row">
+<main class="checkout-main">
+  <div class="chat-header" style="margin-bottom: 16px;">
     <div>
       <h1>Virtual Checkout</h1>
-      <p>Complete your paid subscription upgrade.</p>
+      <p style="color: #9ca3af; margin: 4px 0 0 0;">Complete your subscription upgrade.</p>
     </div>
     <a href="pricing.html" class="nav-btn secondary">View Plans</a>
   </div>
 
-  <!-- Checkout Grid (Only for Paid Tiers) -->
+  <!-- Checkout Grid -->
   <div class="checkout-grid" id="checkout-view">
     <div class="checkout-left">
-      <h3>Selected Subscription</h3>
+      <label>Selected Subscription</label>
       <div id="selected-plan-display" class="order-summary" style="margin-bottom: 20px;">
-        <strong id="display-plan-name">Pro Tier</strong>
-        <p id="display-plan-desc" style="margin: 4px 0 0 0; color: #555; font-size: 13px;">Full subscription with standard Gemini AI capabilities.</p>
+        <strong id="display-plan-name" style="color: #38bdf8;">Pro Tier</strong>
+        <p id="display-plan-desc" style="margin: 4px 0 0 0; color: #9ca3af; font-size: 13px;">Full subscription with standard Gemini AI capabilities.</p>
       </div>
 
       <!-- Interactive Credit Card Visual -->
@@ -31,12 +31,12 @@
         <div class="card-number" id="preview-number">•••• •••• •••• ••••</div>
         <div class="card-row">
           <div>
-            <div class="card-label">Card Holder</div>
-            <div class="card-val" id="preview-name">YOUR NAME</div>
+            <div style="font-size: 9px; text-transform: uppercase; opacity: 0.7;">Card Holder</div>
+            <div id="preview-name" style="font-size: 12px; font-weight: bold;">YOUR NAME</div>
           </div>
           <div>
-            <div class="card-label">Expires</div>
-            <div class="card-val" id="preview-expiry">MM/YY</div>
+            <div style="font-size: 9px; text-transform: uppercase; opacity: 0.7;">Expires</div>
+            <div id="preview-expiry" style="font-size: 12px; font-weight: bold;">MM/YY</div>
           </div>
         </div>
       </div>
@@ -44,7 +44,6 @@
 
     <!-- Virtual Payment Form -->
     <div class="checkout-right">
-      <h3>Payment Details</h3>
       <form id="payment-form" onsubmit="processPayment(event)">
         <label for="card-name">Name on Card</label>
         <input type="text" id="card-name" placeholder="John Doe" required oninput="updateCardPreview()">
@@ -52,7 +51,7 @@
         <label for="card-number">Card Number</label>
         <input type="text" id="card-number" placeholder="4532 0123 4567 8910" maxlength="19" required oninput="formatCardNumber(this)">
 
-        <div class="form-row">
+        <div style="display: flex; gap: 12px;">
           <div>
             <label for="card-exp">Expiration</label>
             <input type="text" id="card-exp" placeholder="MM/YY" maxlength="5" required oninput="formatExpiry(this)">
@@ -72,36 +71,32 @@
             <span>Estimated Tax (8%):</span>
             <span id="tax-amount">$0.48</span>
           </div>
-          <hr>
+          <hr style="border-color: #3f3f46;">
           <div class="summary-line total">
             <span>Total Due Today:</span>
             <span id="total-amount">$6.47</span>
           </div>
         </div>
 
-        <button type="submit" id="pay-btn" class="pay-button">Pay & Activate Subscription</button>
+        <button type="submit" id="pay-btn" class="primary-gpt-btn" style="width: 100%; margin-top: 16px;">Pay & Activate Subscription</button>
       </form>
     </div>
   </div>
 
-  <!-- Confirmation / Receipt State -->
+  <!-- Confirmation Receipt State -->
   <div id="receipt-view" class="receipt-container" style="display: none;">
     <div class="success-icon">✓</div>
     <h2>Payment Successful!</h2>
-    <p>Your paid subscription is now active.</p>
+    <p style="color: #9ca3af;">Your paid subscription is now active.</p>
     <div class="receipt-box">
       <p><strong>Order ID:</strong> <span id="receipt-id">#RW-98214</span></p>
       <p><strong>Plan:</strong> <span id="receipt-plan">Pro Tier</span></p>
       <p><strong>Amount Paid:</strong> <span id="receipt-amount">$6.47</span></p>
       <p><strong>Status:</strong> Active</p>
     </div>
-    <a href="home.html" class="nav-btn primary" style="display: inline-block; margin-top: 16px;">Return to App & Analyze Reviews</a>
+    <a href="home.html" class="nav-btn primary-gpt-btn" style="display: inline-block; margin-top: 16px; text-decoration: none;">Return to App</a>
   </div>
 </main>
-
-<footer>
-    <p>&copy; 2026 ReviewWise AI. All rights reserved.</p>
-</footer>
 
 <script>
   const PLAN_DATA = {
@@ -109,7 +104,6 @@
     advanced: { name: "Advanced Tier", price: 11.99, desc: "Unlocked access to a more advanced version of Gemini AI." }
   };
 
-  // Default to pro if none selected
   let pendingTier = localStorage.getItem("pendingCheckoutTier") || "pro";
   if (!PLAN_DATA[pendingTier]) pendingTier = "pro";
 
@@ -160,7 +154,6 @@
       const tax = item.price * 0.08;
       const total = item.price + tax;
 
-      // SUCCESSFUL PAYMENT: Save active paid status to localStorage
       localStorage.setItem("reviewWiseTier", pendingTier);
       localStorage.setItem("reviewWisePaidStatus", "active");
 
@@ -170,7 +163,7 @@
 
       document.getElementById("checkout-view").style.display = "none";
       document.getElementById("receipt-view").style.display = "block";
-    }, 1500);
+    }, 1200);
   }
 </script>
 </body>
