@@ -146,11 +146,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (error) throw error;
 
-        if (data.session) {
-            window.location.href = "home.html";
-            return;
-        }
-
         submitButtons.forEach(button => {
             button.disabled = false;
         });

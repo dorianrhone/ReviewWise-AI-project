@@ -7,9 +7,8 @@ const loggedOutView = document.getElementById("logged-out-view");
 const loggedInView = document.getElementById("loggedIn-view");
 const userEmailDisplay = document.getElementById("user-email-display");
 
-// Check Authentication State
-const isLoggedIn = localStorage.getItem("reviewWiseLoggedIn") === "true";
-const savedEmail = localStorage.getItem("reviewWiseUserEmail") || "";
+// Supabase authentication
+let supabaseClient = null;
 
 // Restore demo subscription state (client-side storage is not secure for production)
 const isPaidActive = localStorage.getItem("reviewWisePaidStatus") === "active";
@@ -31,20 +30,13 @@ const TIER_LIMITS = {
 let currentConversation = []; // Array of {role: 'user' | 'assistant', content: string}
 let activeSessionId = null;
 
-document.addEventListener("DOMContentLoaded", () => {
-  updateTierBadgeUI();
+document.addEventListener("DOMContentLoaded", async () => {
+    updateTierBadgeUI();
 
-  if (isLoggedIn) {
-    if (loggedOutView) loggedOutView.style.display = "none";
-    if (loggedInView) loggedInView.style.display = "block";
-    if (userEmailDisplay) userEmailDisplay.textContent = savedEmail;
-  } else {
-    if (loggedOutView) loggedOutView.style.display = "block";
-    if (loggedInView) loggedInView.style.display = "none";
-  }
+    await initializeHomeAuth();
 
-  loadChatHistoryUI();
-  renderChat();
+    loadChatHistoryUI();
+    renderChat();
 });
 
 // Helper utility to safely read and parse JSON from localStorage
@@ -313,10 +305,22 @@ async function sendMessage() {
   saveCurrentChatToHistory();
 }
 
-function logout() {
-  localStorage.removeItem("reviewWiseLoggedIn");
-  localStorage.removeItem("reviewWiseUserEmail");
-  window.location.reload();
+async function logout() {
+    try {
+        if (!supabaseClient) {
+            throw new Error("Authentication is not initialized.");
+        }
+
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) throw error;
+
+        window.location.href = "login.html";
+
+    } catch (error) {
+        console.error("Logout error:", error);
+        alert("Unable to sign out. Please try again.");
+    }
 }
 
 function escapeHtml(str) {
@@ -341,4 +345,43 @@ if (chatInput) {
       sendMessage();
     }
   });
+}
+
+async function initializeHomeAuth() {
+    try {
+        const response = await fetch("/api/config");
+
+        if (!response.ok) {
+            throw new Error("Unable to load Supabase configuration.");
+        }
+
+        const config = await response.json();
+
+        supabaseClient = window.supabase.createClient(
+            config.supabaseUrl,
+            config.supabaseKey
+        );
+
+        // Check the currently authenticated user
+        const { data, error } = await supabaseClient.auth.getUser();
+
+        if (error) throw error;
+
+        const user = data.user;
+
+        if (user) {
+            loggedOutView.style.display = "none";
+            loggedInView.style.display = "block";
+            userEmailDisplay.textContent = user.email;
+        } else {
+            loggedOutView.style.display = "block";
+            loggedInView.style.display = "none";
+        }
+
+    } catch (error) {
+        console.error("Authentication error:", error);
+
+        loggedOutView.style.display = "block";
+        loggedInView.style.display = "none";
+    }
 }
