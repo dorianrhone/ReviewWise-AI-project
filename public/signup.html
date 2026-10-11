@@ -39,51 +39,7 @@
   </section>
 </main>
 
-<script>
-  // If already logged in, redirect straight to home workspace
-  if (localStorage.getItem("reviewWiseLoggedIn") === "true") {
-    window.location.href = "home.html";
-  }
-
-  function handleSignup(e) {
-    e.preventDefault();
-    const name = document.getElementById("signup-name").value.trim();
-    const email = document.getElementById("signup-email").value.trim().toLowerCase();
-    const password = document.getElementById("signup-password").value;
-    const errorMsg = document.getElementById("error-msg");
-
-    // Fetch existing registered accounts array
-    let accounts = JSON.parse(localStorage.getItem("reviewWiseAccounts") || "[]");
-
-    // CHECK FOR DUPLICATE ACCOUNT
-    const existingAccount = accounts.find(acc => acc.email === email);
-    if (existingAccount) {
-      errorMsg.style.display = "block";
-      errorMsg.innerHTML = 'An account with this email already exists. <a href="login.html" style="color: #38bdf8; font-weight: bold;">Sign in here</a>.';
-      return;
-    }
-
-    // Save new account to registered accounts list
-    const newAccount = { name, email, password };
-    accounts.push(newAccount);
-    localStorage.setItem("reviewWiseAccounts", JSON.stringify(accounts));
-
-    // Also set fallback single keys for backwards compatibility
-    localStorage.setItem("reviewWiseRegisteredEmail", email);
-    localStorage.setItem("reviewWiseRegisteredPassword", password);
-
-    // Set active session state
-    localStorage.setItem("reviewWiseLoggedIn", "true");
-    localStorage.setItem("reviewWiseUserName", name);
-    localStorage.setItem("reviewWiseUserEmail", email);
-
-    if (!localStorage.getItem("reviewWiseTier")) {
-      localStorage.setItem("reviewWiseTier", "free");
-    }
-
-    // Redirect to home dashboard
-    window.location.href = "home.html";
-  }
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="scripts/auth.js" defer></script>
 </body>
 </html>

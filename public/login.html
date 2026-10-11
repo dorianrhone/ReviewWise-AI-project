@@ -38,51 +38,7 @@
   </section>
 </main>
 
-<script>
-  // If already logged in, redirect straight to home workspace
-  if (localStorage.getItem("reviewWiseLoggedIn") === "true") {
-    window.location.href = "home.html";
-  }
-
-  // Pre-fill registered email if available
-  document.addEventListener("DOMContentLoaded", () => {
-    const savedEmail = localStorage.getItem("reviewWiseUserEmail") || localStorage.getItem("reviewWiseRegisteredEmail");
-    if (savedEmail) {
-      document.getElementById("login-email").value = savedEmail;
-    }
-  });
-
-  function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById("login-email").value.trim().toLowerCase();
-    const password = document.getElementById("login-password").value;
-    const errorMsg = document.getElementById("error-msg");
-
-    const accounts = JSON.parse(localStorage.getItem("reviewWiseAccounts") || "[]");
-    
-    // Check against multi-accounts array or legacy single account fallback
-    const matchedAccount = accounts.find(acc => acc.email === email && acc.password === password);
-    const legacyEmail = localStorage.getItem("reviewWiseRegisteredEmail");
-    const legacyPassword = localStorage.getItem("reviewWiseRegisteredPassword");
-    
-    const isValid = matchedAccount || (legacyEmail === email && legacyPassword === password);
-
-    if (!isValid) {
-      errorMsg.style.display = "block";
-      errorMsg.textContent = "Incorrect email or password. Please try again.";
-      return;
-    }
-
-    // Set active session
-    localStorage.setItem("reviewWiseLoggedIn", "true");
-    localStorage.setItem("reviewWiseUserEmail", email);
-    if (matchedAccount) {
-      localStorage.setItem("reviewWiseUserName", matchedAccount.name);
-    }
-
-    // Redirect to home dashboard
-    window.location.href = "home.html";
-  }
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="scripts/auth.js" defer></script>
 </body>
 </html>

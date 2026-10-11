@@ -33,6 +33,14 @@ app.get("/api/health", (req, res) => {
     });
 });
 
+// Public Supabase configuration for browser authentication
+app.get("/api/config", (req, res) => {
+    res.json({
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseKey: process.env.SUPABASE_PUBLISHABLE_KEY
+    });
+});
+
 // Analyze customer reviews using Gemini AI
 app.post("/api/analyze", async (req, res) => {
     try {
