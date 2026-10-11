@@ -1,6 +1,6 @@
 # ReviewWise-AI-project
 
-# PalmettoHacks
+# PalmettoHacks 2026 Hackathon
 
 # The Chargers
 
