@@ -195,76 +195,41 @@ async function loadSubscriptionTier() {
 // MONTHLY USAGE TRACKING
 // ==========================================
 
+
 function getMonthlyUsage() {
-    if (!currentUser) {
-        return {
-            month: "",
-            chats: 0
-        };
-    }
-
-    const month = new Date().toISOString().slice(0, 7);
-    const storageKey = `reviewWiseMonthlyUsage_${currentUser.id}`;
-
-    let usage;
-
-    try {
-        usage = JSON.parse(
-            localStorage.getItem(storageKey) || "{}"
-        );
-    } catch {
-        usage = {};
-    }
-
-    if (usage.month !== month) {
-        usage = {
-            month,
-            chats: 0
-        };
-
-        localStorage.setItem(
-            storageKey,
-            JSON.stringify(usage)
-        );
-    }
-
-    return usage;
+    return monthlyUsage;
 }
 
-function incrementMonthlyChats() {
-    if (!currentUser) return;
+async function loadMonthlyUsage() {
+    if (!currentUser || !supabaseClient) {
+        monthlyUsage = { month: "", chats: 0 };
+        updateTierBadgeUI();
+        return;
+    }
 
-    const usage = getMonthlyUsage();
-    usage.chats += 1;
+    // Get current month in UTC
+    const month = new Date().toISOString().slice(0, 7);
+    const monthStart = `${month}-01`;
 
-    localStorage.setItem(
-        `reviewWiseMonthlyUsage_${currentUser.id}`,
-        JSON.stringify(usage)
-    );
+    const { data, error } = await supabaseClient
+        .from("monthly_usage")
+        .select("chats_used")
+        .eq("user_id", currentUser.id)
+        .eq("month", monthStart)
+        .maybeSingle();
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    monthlyUsage = {
+        month,
+        chats: data?.chats_used ?? 0
+    };
 
     updateTierBadgeUI();
 }
 
-function updateTierBadgeUI() {
-    if (!activeTierName) return;
-
-    const tier = TIER_LIMITS[currentTier];
-    const usage = getMonthlyUsage();
-
-    activeTierName.innerHTML = `
-        ${tier.name} Tier ($${tier.price.toFixed(2)}/mo)
-        <br>
-        <span style="
-            font-size: 11px;
-            color: #9ca3af;
-            font-weight: normal;
-        ">
-            Chats: ${usage.chats}/${tier.chats} this month
-            <br>
-            Prompts per chat: ${tier.prompts}
-        </span>
-    `;
-}
 
 // ==========================================
 // CHAT SUGGESTIONS
@@ -699,8 +664,20 @@ async function sendMessage() {
 
         renderChat();
         await loadChatHistoryUI();
-        updateTierBadgeUI();
+        
+        try {
+            await loadMonthlyUsage();
+        } catch (usageError) {
+            console.error(
+                "Unable to refresh monthly usage:",
+                usageError
+            );
+        }
+
     }
+
+    
+
 }
 
 // ==========================================
