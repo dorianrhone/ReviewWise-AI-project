@@ -10,6 +10,8 @@ const {
     answerQuestion
 } = require("./services/gemini");
 
+const { requireAuth } = require("./middleware/auth");
+
 // Create Express application
 const app = express();
 const PORT = process.env.PORT || 3000;
