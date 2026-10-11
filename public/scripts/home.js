@@ -30,6 +30,8 @@ const TIER_LIMITS = {
 
 let currentConversation = []; // Array of {role: 'user' | 'assistant', content: string}
 let activeSessionId = null;
+let currentReviews = "";
+let isSending = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   updateTierBadgeUI();
@@ -93,10 +95,15 @@ function loadSuggestion(text) {
 }
 
 function startNewChat() {
-  saveCurrentChatToHistory();
-  currentConversation = [];
-  activeSessionId = Date.now();
-  renderChat();
+    if (isSending) return;
+
+    saveCurrentChatToHistory();
+
+    currentConversation = [];
+    currentReviews = "";
+    activeSessionId = Date.now();
+
+    renderChat();
 }
 
 function saveCurrentChatToHistory() {
@@ -109,8 +116,9 @@ function saveCurrentChatToHistory() {
   const sessionObj = {
     id: activeSessionId || Date.now(),
     title: titleSnippet,
+    reviews: currentReviews,
     messages: currentConversation
-  };
+};
 
   const existingIdx = history.findIndex(item => item.id === sessionObj.id);
   if (existingIdx >= 0) {
@@ -140,10 +148,13 @@ function loadChatHistoryUI() {
     div.className = "history-item";
     div.textContent = item.title;
     div.onclick = () => {
-      activeSessionId = item.id;
-      currentConversation = item.messages;
-      renderChat();
-    };
+    if (isSending) return;
+
+    activeSessionId = item.id;
+    currentConversation = item.messages;
+    currentReviews = item.reviews || "";
+    renderChat();
+};
     chatHistoryList.appendChild(div);
   });
 }
@@ -182,54 +193,107 @@ function renderChat() {
   chatFeed.scrollTop = chatFeed.scrollHeight;
 }
 
+
 async function sendMessage() {
-  const text = chatInput.value.trim();
-  if (!text) return;
+    const text = chatInput.value.trim();
 
-  // Enforce tier weekly chat limit
-  const usage = getWeeklyUsage();
-  const limit = TIER_LIMITS[currentTier] || 10;
+    if (!text || isSending) return;
 
-  if (usage.count >= limit) {
-    alert(`You have reached your limit of ${limit} chats for this week on the ${currentTier.toUpperCase()} tier. Please upgrade your plan in Pricing to continue!`);
-    return;
-  }
+    // Check weekly usage limit
+    const usage = getWeeklyUsage();
+    const limit = TIER_LIMITS[currentTier] || 10;
 
-  if (!activeSessionId) {
-    activeSessionId = Date.now();
-  }
+    if (usage.count >= limit) {
+        alert(`Weekly limit reached: ${limit} uses.`);
+        return;
+    }
 
-  // Append user message
-  currentConversation.push({ role: 'user', content: text });
-  chatInput.value = "";
-  renderChat();
+    if (!activeSessionId) {
+        activeSessionId = Date.now();
+    }
 
-  // Temporary indicator
-  currentConversation.push({ role: 'assistant', content: `Thinking (${currentTier.toUpperCase()})...` });
-  renderChat();
+    // First message becomes the review context
+    const firstMessage = !currentReviews;
 
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reviews: currentConversation.map(m => `${m.role}: ${m.content}`).join("\n"),
-        question: text,
-        tier: currentTier
-      })
+    if (firstMessage) {
+        currentReviews = text;
+    }
+
+    const question = firstMessage
+        ? "Summarize these customer reviews. Identify positives, negatives, and recommendations."
+        : text;
+
+    isSending = true;
+    const sendButton = document.getElementById("send-btn");
+
+    if (sendButton) sendButton.disabled = true;
+
+    // Display the user's message
+    currentConversation.push({
+        role: "user",
+        content: text
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Request failed");
 
-    currentConversation[currentConversation.length - 1] = { role: 'assistant', content: data.answer || "No response." };
-    incrementWeeklyUsage();
-  } catch (error) {
-    currentConversation[currentConversation.length - 1] = { role: 'assistant', content: `Error: ${error.message}` };
-  }
+    chatInput.value = "";
 
-  renderChat();
-  saveCurrentChatToHistory();
+    // Remember where the loading message is
+    const loadingIndex = currentConversation.length;
+
+    currentConversation.push({
+        role: "assistant",
+        content: "Analyzing reviews..."
+    });
+
+    renderChat();
+
+    // Stop waiting after 30 seconds
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    try {
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            signal: controller.signal,
+            body: JSON.stringify({
+                reviews: currentReviews,
+                question: question
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Request failed.");
+        }
+
+        currentConversation[loadingIndex] = {
+            role: "assistant",
+            content: data.answer || "No response returned."
+        };
+
+        incrementWeeklyUsage();
+
+    } catch (error) {
+        currentConversation[loadingIndex] = {
+            role: "assistant",
+            content: error.name === "AbortError"
+                ? "Gemini is taking too long. Please try again."
+                : `Error: ${error.message}`
+        };
+    } finally {
+        clearTimeout(timeout);
+        isSending = false;
+
+        if (sendButton) sendButton.disabled = false;
+
+        renderChat();
+        saveCurrentChatToHistory();
+    }
 }
+
 
 function logout() {
   localStorage.removeItem("reviewWiseLoggedIn");

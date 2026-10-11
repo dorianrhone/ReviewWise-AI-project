@@ -9,12 +9,12 @@ const ai = new GoogleGenAI({
 });
 
 // Select the Gemini model
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 // Send a prompt to Gemini and return its response
 
 async function askGemini(prompt) {
-    const maxAttempts = 3;
+    const maxAttempts = 2;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
