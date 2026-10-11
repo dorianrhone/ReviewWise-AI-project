@@ -24,5 +24,5 @@ ReviewWise AI is an AI-powered business intelligence platform designed to help b
 
 ## Live Website
 
-[ReviewWise AI](https://reviewwise-ai-project.onrender.com/)
-[RevieWise AI Demo](https://youtu.be/CY_Xxt56y1E)
+- [ReviewWise AI](https://reviewwise-ai-project.onrender.com/)
+- [RevieWise AI Demo](https://youtu.be/CY_Xxt56y1E)
