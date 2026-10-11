@@ -119,7 +119,7 @@
 
     </div>
 </main>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 "use strict";
 
@@ -184,17 +184,63 @@ document.addEventListener("DOMContentLoaded", () => {
     ).textContent = formatMoney(total);
 });
 
-function processDemoCheckout() {
-    document.getElementById(
-        "checkout-view"
-    ).style.display = "none";
 
-    document.getElementById(
-        "receipt-view"
-    ).style.display = "block";
+async function processDemoCheckout() {
+    const button = document.getElementById("pay-btn");
 
-    localStorage.removeItem("pendingCheckoutTier");
+    try {
+        button.disabled = true;
+        button.textContent = "Activating Demo Plan...";
+
+        const configResponse = await fetch("/api/config");
+
+        if (!configResponse.ok) {
+            throw new Error("Unable to load configuration.");
+        }
+
+        const config = await configResponse.json();
+
+        const client = window.supabase.createClient(
+            config.supabaseUrl,
+            config.supabaseKey
+        );
+
+        const { data, error: sessionError } =
+            await client.auth.getSession();
+
+        if (sessionError || !data.session) {
+            throw new Error("Please sign in first.");
+        }
+
+        const { error } = await client.rpc(
+            "activate_demo_subscription",
+            {
+                p_tier: pendingTier
+            }
+        );
+
+        if (error) throw error;
+
+        document.getElementById(
+            "checkout-view"
+        ).style.display = "none";
+
+        document.getElementById(
+            "receipt-view"
+        ).style.display = "block";
+
+        localStorage.removeItem("pendingCheckoutTier");
+
+    } catch (error) {
+        console.error("Demo activation error:", error);
+        alert(error.message);
+
+    } finally {
+        button.disabled = false;
+        button.textContent = "Complete Demo Checkout";
+    }
 }
+
 </script>
 
 </body>

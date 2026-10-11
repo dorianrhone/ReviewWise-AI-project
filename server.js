@@ -49,11 +49,10 @@ app.get("/api/me", requireAuth, (req, res) => {
 });
 
 
+
 // Get the authenticated user's subscription
 app.get("/api/subscription", requireAuth, async (req, res) => {
     try {
-        // Create a Supabase client using the user's token
-        // so Row Level Security applies to their account.
         const userSupabase = createClient(
             process.env.SUPABASE_URL,
             process.env.SUPABASE_PUBLISHABLE_KEY,
@@ -70,44 +69,51 @@ app.get("/api/subscription", requireAuth, async (req, res) => {
             }
         );
 
-        // Read subscription from PostgreSQL
         const { data, error } = await userSupabase
             .from("subscriptions")
-            .select("tier")
+            .select("tier, status, started_at, expires_at")
             .eq("user_id", req.user.id)
             .single();
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
-        // Subscription limits
         const limits = {
-            free: {
-                chats: 10,
-                prompts: 5
-            },
-            pro: {
-                chats: 20,
-                prompts: 10
-            },
-            advanced: {
-                chats: 30,
-                prompts: 15
-            }
+            free: { chats: 10, prompts: 5 },
+            pro: { chats: 20, prompts: 10 },
+            advanced: { chats: 30, prompts: 15 }
         };
 
-        const tier = data.tier;
+        const now = new Date();
 
-        if (!limits[tier]) {
-            throw new Error("Invalid subscription tier.");
-        }
+        const expired =
+            data.expires_at &&
+            new Date(data.expires_at) <= now;
 
-        // Send subscription information to frontend
+        const active =
+            data.status === "active" && !expired;
+
+        const tier =
+            active && limits[data.tier]
+                ? data.tier
+                : "free";
+
         res.json({
-            tier: tier,
+            tier,
+            status: active ? "active" : "expired",
             chatsPerMonth: limits[tier].chats,
-            promptsPerChat: limits[tier].prompts
+            promptsPerChat: limits[tier].prompts,
+            startedAt: data.started_at,
+            expiresAt: data.expires_at,
+            daysRemaining:
+                active && data.expires_at
+                    ? Math.max(
+                        0,
+                        Math.ceil(
+                            (new Date(data.expires_at) - now) /
+                            86400000
+                        )
+                    )
+                    : null
         });
 
     } catch (error) {
@@ -118,6 +124,7 @@ app.get("/api/subscription", requireAuth, async (req, res) => {
         });
     }
 });
+
 
 // Public Supabase configuration for browser authentication
 app.get("/api/config", (req, res) => {

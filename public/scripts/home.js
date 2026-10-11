@@ -387,6 +387,8 @@ async function loadSubscriptionTier() {
 
     currentTier = subscription.tier;
 
+    window.currentSubscriptionInfo = subscription;
+
     await loadMonthlyUsage();
 
     subscriptionVerified = true;
