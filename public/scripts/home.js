@@ -6,27 +6,36 @@
 // ==========================================
 
 // DOM ELEMENTS
+
 const chatFeed = document.getElementById("chat-feed");
 const chatInput = document.getElementById("chat-input");
 const welcomeContainer = document.getElementById("welcome-container");
 const chatHistoryList = document.getElementById("chat-history-list");
 const activeTierName = document.getElementById("active-tier-name");
+
 const loggedOutView = document.getElementById("logged-out-view");
 const loggedInView = document.getElementById("logged-in-view");
 const userEmailDisplay = document.getElementById("user-email-display");
+
 const sendButton = document.getElementById("send-btn");
-
 const toggleSidebarBtn = document.getElementById("toggle-sidebar-btn");
-const appLayout = document.querySelector(".app-layout");
 
+const appLayout = document.getElementById("app-layout");
+const chatMain = document.getElementById("chat-main");
+
+// ==========================================
 // APPLICATION STATE
+// ==========================================
+
 let supabaseClient = null;
 let currentUser = null;
 
 let currentConversation = [];
 let activeSessionId = null;
 let savedConversations = [];
+
 let isSending = false;
+let isRegenerating = false;
 
 let currentTier = "free";
 let subscriptionVerified = false;
@@ -47,12 +56,14 @@ const TIER_LIMITS = {
         chats: 10,
         prompts: 5
     },
+
     pro: {
         name: "Pro",
         price: 5.99,
         chats: 20,
         prompts: 10
     },
+
     advanced: {
         name: "Advanced",
         price: 11.99,
@@ -66,34 +77,62 @@ const TIER_LIMITS = {
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Hide sidebar by default
+    appLayout?.classList.add("sidebar-closed");
+    updateSidebarAccessibility();
+
+    // Start on centered welcome screen
+    updateChatLayout();
+
+    initializeInput();
+
     try {
         await initializeHomeAuth();
         await loadChatHistoryUI();
+
         renderChat();
         updateTierBadgeUI();
+
     } catch (error) {
-        console.error("Application initialization error:", error);
+        console.error(
+            "Application initialization error:",
+            error
+        );
     }
 });
 
 // ==========================================
-// SIDEBAR TOGGLE
+// SIDEBAR CONTROLS
 // ==========================================
 
-function toggleSidebar() {
-    if (appLayout) {
-        appLayout.classList.toggle("sidebar-closed");
+function updateSidebarAccessibility() {
+    const closed =
+        appLayout?.classList.contains("sidebar-closed");
+
+    toggleSidebarBtn?.setAttribute(
+        "aria-expanded",
+        String(!closed)
+    );
+
+    const sidebar = document.getElementById("sidebar");
+
+    if (sidebar) {
+        sidebar.inert = Boolean(closed);
     }
 }
 
-if (toggleSidebarBtn) {
-    toggleSidebarBtn.addEventListener(
-        "click",
-        toggleSidebar
-    );
+function toggleSidebar() {
+    if (!appLayout) return;
+
+    appLayout.classList.toggle("sidebar-closed");
+    updateSidebarAccessibility();
 }
 
-// Ctrl + Shift + S
+toggleSidebarBtn?.addEventListener(
+    "click",
+    toggleSidebar
+);
+
 document.addEventListener("keydown", event => {
     if (
         event.ctrlKey &&
@@ -104,6 +143,63 @@ document.addEventListener("keydown", event => {
         toggleSidebar();
     }
 });
+
+// ==========================================
+// DYNAMIC CHAT LAYOUT
+// ==========================================
+
+function updateChatLayout() {
+    if (!chatMain) return;
+
+    const hasMessages = currentConversation.length > 0;
+
+    chatMain.classList.toggle(
+        "empty-chat",
+        !hasMessages
+    );
+
+    chatMain.classList.toggle(
+        "has-messages",
+        hasMessages
+    );
+
+    if (welcomeContainer) {
+        welcomeContainer.style.display =
+            hasMessages ? "none" : "block";
+    }
+}
+
+// ==========================================
+// INPUT BEHAVIOR
+// ==========================================
+
+function initializeInput() {
+    if (!chatInput) return;
+
+    chatInput.addEventListener("input", () => {
+        resizeChatInput();
+    });
+
+    chatInput.addEventListener("keydown", event => {
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey &&
+            !event.isComposing
+        ) {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+}
+
+function resizeChatInput() {
+    if (!chatInput) return;
+
+    chatInput.style.height = "auto";
+
+    chatInput.style.height =
+        Math.min(chatInput.scrollHeight, 180) + "px";
+}
 
 // ==========================================
 // SUPABASE INITIALIZATION
@@ -155,59 +251,70 @@ async function initializeHomeAuth() {
         const { data, error } =
             await supabaseClient.auth.getUser();
 
-        if (error && error.code !== "session_not_found") {
+        if (
+            error &&
+            error.code !== "session_not_found"
+        ) {
             throw error;
         }
 
         currentUser = data?.user || null;
 
         if (currentUser) {
-            loggedOutView.style.display = "none";
-            loggedInView.style.display = "block";
+            if (loggedOutView) {
+                loggedOutView.style.display = "none";
+            }
 
-            userEmailDisplay.textContent =
-                currentUser.email || "Signed-in user";
+            if (loggedInView) {
+                loggedInView.style.display = "block";
+            }
+
+            if (userEmailDisplay) {
+                userEmailDisplay.textContent =
+                    currentUser.email || "Signed-in user";
+            }
 
             try {
                 await loadSubscriptionTier();
+
             } catch (subscriptionError) {
                 console.error(
-                    "Unable to load subscription or monthly usage:",
+                    "Unable to load subscription:",
                     subscriptionError
                 );
 
                 subscriptionVerified = false;
-                monthlyUsage = {
-                    month: "",
-                    chats: 0
-                };
             }
 
         } else {
-            loggedOutView.style.display = "block";
-            loggedInView.style.display = "none";
-
-            currentTier = "free";
-            subscriptionVerified = false;
-
-            monthlyUsage = {
-                month: "",
-                chats: 0
-            };
+            showLoggedOutState();
         }
 
     } catch (error) {
         console.error("Authentication error:", error);
-
-        currentUser = null;
-        currentTier = "free";
-        subscriptionVerified = false;
-
-        loggedOutView.style.display = "block";
-        loggedInView.style.display = "none";
+        showLoggedOutState();
     }
 
     updateTierBadgeUI();
+}
+
+function showLoggedOutState() {
+    currentUser = null;
+    currentTier = "free";
+    subscriptionVerified = false;
+
+    monthlyUsage = {
+        month: "",
+        chats: 0
+    };
+
+    if (loggedOutView) {
+        loggedOutView.style.display = "block";
+    }
+
+    if (loggedInView) {
+        loggedInView.style.display = "none";
+    }
 }
 
 // ==========================================
@@ -238,27 +345,22 @@ async function authenticatedFetch(url, options = {}) {
 
     return fetch(url, {
         ...options,
+
         headers: {
             ...(options.headers || {}),
+
             Authorization: `Bearer ${token}`
         }
     });
 }
 
 // ==========================================
-// LOAD SUBSCRIPTION FROM EXPRESS
+// LOAD SUBSCRIPTION
 // ==========================================
 
 async function loadSubscriptionTier() {
     if (!currentUser || !supabaseClient) {
-        currentTier = "free";
         subscriptionVerified = false;
-
-        monthlyUsage = {
-            month: "",
-            chats: 0
-        };
-
         updateTierBadgeUI();
         return;
     }
@@ -292,7 +394,7 @@ async function loadSubscriptionTier() {
 }
 
 // ==========================================
-// MONTHLY USAGE TRACKING
+// MONTHLY USAGE
 // ==========================================
 
 function getMonthlyUsage() {
@@ -310,7 +412,6 @@ async function loadMonthlyUsage() {
         return;
     }
 
-    // UTC calendar month
     const month = new Date()
         .toISOString()
         .slice(0, 7);
@@ -337,7 +438,7 @@ async function loadMonthlyUsage() {
 }
 
 // ==========================================
-// UPDATE SUBSCRIPTION SIDEBAR
+// SUBSCRIPTION SIDEBAR
 // ==========================================
 
 function updateTierBadgeUI() {
@@ -349,30 +450,22 @@ function updateTierBadgeUI() {
     if (!currentUser) {
         activeTierName.innerHTML = `
             Free Tier ($0.00/mo)
-            <br>
-            <span style="
-                font-size: 11px;
-                color: #9ca3af;
-                font-weight: normal;
-            ">
+            <span class="tier-details">
                 Sign in to track usage
             </span>
         `;
+
         return;
     }
 
     if (!subscriptionVerified) {
         activeTierName.innerHTML = `
             Subscription unavailable
-            <br>
-            <span style="
-                font-size: 11px;
-                color: #9ca3af;
-                font-weight: normal;
-            ">
+            <span class="tier-details">
                 Unable to verify plan or usage
             </span>
         `;
+
         return;
     }
 
@@ -380,12 +473,8 @@ function updateTierBadgeUI() {
 
     activeTierName.innerHTML = `
         ${tier.name} Tier ($${tier.price.toFixed(2)}/mo)
-        <br>
-        <span style="
-            font-size: 11px;
-            color: #9ca3af;
-            font-weight: normal;
-        ">
+
+        <span class="tier-details">
             Chats: ${usage.chats}/${tier.chats} this month
             <br>
             Prompts per chat: ${tier.prompts}
@@ -394,32 +483,41 @@ function updateTierBadgeUI() {
 }
 
 // ==========================================
-// CHAT SUGGESTIONS
+// SUGGESTION CHIPS
 // ==========================================
 
 function loadSuggestion(text) {
     if (!chatInput) return;
 
     chatInput.value = text;
+    resizeChatInput();
     chatInput.focus();
 }
 
 // ==========================================
-// CREATE NEW CHAT
+// NEW CHAT
 // ==========================================
 
 function startNewChat() {
-    if (isSending) return;
+    if (isSending || isRegenerating) return;
 
     currentConversation = [];
     activeSessionId = null;
 
+    if (chatInput) {
+        chatInput.value = "";
+        resizeChatInput();
+    }
+
     renderChat();
-    loadChatHistoryUI();
+
+    loadChatHistoryUI().catch(console.error);
+
+    chatInput?.focus();
 }
 
 // ==========================================
-// CREATE CONVERSATION IN SUPABASE
+// CREATE SUPABASE CONVERSATION
 // ==========================================
 
 async function createConversation(firstMessage) {
@@ -455,7 +553,7 @@ async function createConversation(firstMessage) {
 }
 
 // ==========================================
-// SAVE MESSAGE TO SUPABASE
+// SAVE MESSAGE
 // ==========================================
 
 async function saveMessage(
@@ -467,27 +565,29 @@ async function saveMessage(
         throw new Error("No active conversation.");
     }
 
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from("messages")
         .insert({
             conversation_id: conversationId,
             role,
             content
-        });
+        })
+        .select("id, role, content, created_at")
+        .single();
 
     if (error) {
         throw error;
     }
+
+    return data;
 }
 
 // ==========================================
-// LOAD SAVED CONVERSATIONS
+// LOAD CHAT HISTORY
 // ==========================================
 
 async function loadChatHistoryUI() {
     if (!chatHistoryList) return;
-
-    chatHistoryList.innerHTML = "";
 
     if (!currentUser || !supabaseClient) {
         chatHistoryList.textContent =
@@ -511,10 +611,13 @@ async function loadChatHistoryUI() {
 
         chatHistoryList.textContent =
             "Unable to load saved chats.";
+
         return;
     }
 
     savedConversations = data || [];
+
+    chatHistoryList.innerHTML = "";
 
     if (savedConversations.length === 0) {
         chatHistoryList.textContent =
@@ -524,42 +627,59 @@ async function loadChatHistoryUI() {
 
     savedConversations.forEach(item => {
         const div = document.createElement("div");
+
         div.className = "history-item";
 
         if (item.id === activeSessionId) {
-            div.style.background =
-                "rgba(255, 255, 255, 0.05)";
+            div.classList.add("active");
         }
 
         const titleSpan = document.createElement("span");
 
-        titleSpan.textContent = item.title;
-        titleSpan.style.flex = "1";
-        titleSpan.style.overflow = "hidden";
-        titleSpan.style.textOverflow = "ellipsis";
-        titleSpan.style.whiteSpace = "nowrap";
-        titleSpan.style.cursor = "pointer";
+        titleSpan.textContent =
+            item.title || "New Chat";
 
-        titleSpan.onclick = () => {
-            if (!isSending) {
+        titleSpan.title =
+            item.title || "New Chat";
+
+        div.onclick = () => {
+            if (!isSending && !isRegenerating) {
                 openChatSession(item.id);
             }
         };
 
-        const deleteBtn = document.createElement("button");
+        div.tabIndex = 0;
+        div.setAttribute("role", "button");
 
-        deleteBtn.textContent = "✕";
+        div.addEventListener("keydown", event => {
+            if (
+                event.target === div &&
+                (event.key === "Enter" ||
+                 event.key === " ")
+            ) {
+                event.preventDefault();
+
+                if (!isSending && !isRegenerating) {
+                    openChatSession(item.id);
+                }
+            }
+        });
+
+        const deleteBtn =
+            document.createElement("button");
+
+        deleteBtn.type = "button";
+        deleteBtn.textContent = "×";
         deleteBtn.title = "Delete Chat";
-        deleteBtn.style.background = "transparent";
-        deleteBtn.style.border = "none";
-        deleteBtn.style.color = "#9ca3af";
-        deleteBtn.style.cursor = "pointer";
-        deleteBtn.style.padding = "2px 6px";
+        deleteBtn.setAttribute(
+            "aria-label",
+            "Delete conversation"
+        );
 
         deleteBtn.onclick = async event => {
             event.stopPropagation();
 
-            if (!isSending) {
+            if (!isSending && !isRegenerating) {
                 await deleteChatSession(item.id);
             }
         };
@@ -572,11 +692,17 @@ async function loadChatHistoryUI() {
 }
 
 // ==========================================
-// OPEN SAVED CONVERSATION
+// OPEN SAVED CHAT
 // ==========================================
 
 async function openChatSession(id) {
-    if (!currentUser || isSending) return;
+    if (
+        !currentUser ||
+        isSending ||
+        isRegenerating
+    ) {
+        return;
+    }
 
     const { data, error } = await supabaseClient
         .from("messages")
@@ -602,12 +728,19 @@ async function openChatSession(id) {
     activeSessionId = id;
 
     currentConversation = (data || []).map(message => ({
+        id: message.id,
         role: message.role,
         content: message.content
     }));
 
     renderChat();
     await loadChatHistoryUI();
+
+    // Automatically hide sidebar on mobile
+    if (window.innerWidth <= 768) {
+        appLayout?.classList.add("sidebar-closed");
+        updateSidebarAccessibility();
+    }
 }
 
 // ==========================================
@@ -615,22 +748,30 @@ async function openChatSession(id) {
 // ==========================================
 
 async function deleteChatSession(id) {
-    if (!currentUser || isSending) return;
+    if (
+        !currentUser ||
+        isSending ||
+        isRegenerating
+    ) {
+        return;
+    }
 
     const confirmed = confirm(
-        "Are you sure you want to delete this conversation?"
+        "Delete this conversation? Its messages will be permanently removed, but your monthly chat allowance will not be restored."
     );
 
     if (!confirmed) return;
 
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from("conversations")
         .delete()
         .eq("id", id)
-        .eq("user_id", currentUser.id);
+        .eq("user_id", currentUser.id)
+        .select("id");
 
-    if (error) {
+    if (error || !data?.length) {
         console.error("Delete error:", error);
+
         alert("Unable to delete conversation.");
         return;
     }
@@ -643,12 +784,12 @@ async function deleteChatSession(id) {
 
     await loadChatHistoryUI();
 
-    // Deleting chats does not refund monthly usage.
+    // Deletion does not refund monthly usage
     try {
         await loadMonthlyUsage();
     } catch (error) {
         console.error(
-            "Unable to refresh monthly usage:",
+            "Unable to refresh usage:",
             error
         );
     }
@@ -663,72 +804,141 @@ function renderChat() {
 
     chatFeed.innerHTML = "";
 
+    updateChatLayout();
+
     if (currentConversation.length === 0) {
-        if (welcomeContainer) {
-            welcomeContainer.style.display = "block";
-        }
         return;
     }
 
-    if (welcomeContainer) {
-        welcomeContainer.style.display = "none";
-    }
+    const lastAssistantIndex =
+        currentConversation.findLastIndex(
+            message => message.role === "assistant"
+        );
 
-    currentConversation.forEach(msg => {
-        const msgDiv = document.createElement("div");
+    currentConversation.forEach((msg, index) => {
+        const msgDiv =
+            document.createElement("div");
 
         msgDiv.className =
             `chat-message ${msg.role}`;
 
         if (msg.role === "user") {
-            msgDiv.innerHTML = `
-                <div class="message-bubble">
-                    ${escapeHtml(msg.content)}
-                </div>
-            `;
+            const bubble =
+                document.createElement("div");
+
+            bubble.className = "message-bubble";
+            bubble.textContent = msg.content;
+
+            msgDiv.appendChild(bubble);
+
         } else {
-            msgDiv.innerHTML = `
-                <div class="message-content">
-                    ${formatAssistantContent(msg.content)}
-                </div>
-                <div class="message-actions">
-                    <button
-                        class="action-btn"
-                        title="Copy"
-                        onclick="copyText(this)"
-                    >📋</button>
-                    <button
-                        class="action-btn"
-                        title="Dislike"
-                    >👎</button>
-                    <button
-                        class="action-btn"
-                        title="Share"
-                    >📤</button>
-                    <button
-                        class="action-btn"
-                        title="Read Aloud"
-                    >🔊</button>
-                    <button
-                        class="action-btn"
-                        title="Regenerate"
-                    >🔄</button>
-                </div>
-            `;
+            const content =
+                document.createElement("div");
+
+            content.className = "message-content";
+            content.innerHTML =
+                formatAssistantContent(msg.content);
+
+            msgDiv.appendChild(content);
+
+            // Only show Regenerate on the latest
+            // completed assistant response.
+            if (
+                index === lastAssistantIndex &&
+                index === currentConversation.length - 1 &&
+                !isSending &&
+                !isRegenerating &&
+                activeSessionId &&
+                msg.id &&
+                !msg.content.startsWith("Error:")
+            ) {
+                const actions =
+                    document.createElement("div");
+
+                actions.className = "message-actions";
+
+                const regenerateBtn =
+                    document.createElement("button");
+
+                regenerateBtn.type = "button";
+                regenerateBtn.className = "action-btn";
+                regenerateBtn.textContent =
+                    "↻ Regenerate Response";
+
+                regenerateBtn.onclick = () => {
+                    regenerateResponse();
+                };
+
+                actions.appendChild(regenerateBtn);
+                msgDiv.appendChild(actions);
+            }
         }
 
         chatFeed.appendChild(msgDiv);
     });
 
-    chatFeed.scrollTop = chatFeed.scrollHeight;
+    requestAnimationFrame(() => {
+        chatFeed.scrollTop = chatFeed.scrollHeight;
+    });
 }
 
 // ==========================================
-// SEND MESSAGE TO GEMINI
+// GEMINI REQUEST HELPER
+// ==========================================
+
+async function requestGemini(messages, question) {
+    const reviews = messages
+        .map(message =>
+            `${message.role}: ${message.content}`
+        )
+        .join("\n");
+
+    const response = await authenticatedFetch(
+        "/api/chat",
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                conversationId: activeSessionId,
+                reviews,
+                question
+            })
+        }
+    );
+
+    let data;
+
+    try {
+        data = await response.json();
+    } catch {
+        throw new Error(
+            "The server returned an invalid response."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data.error ||
+            `Request failed (${response.status})`
+        );
+    }
+
+    return data.answer ||
+        "No response was returned.";
+}
+
+// ==========================================
+// SEND MESSAGE
 // ==========================================
 
 async function sendMessage() {
-    if (isSending) return;
+    if (isSending || isRegenerating || !chatInput) {
+        return;
+    }
 
     const text = chatInput.value.trim();
 
@@ -753,8 +963,6 @@ async function sendMessage() {
         message => message.role === "user"
     ).length;
 
-    // Frontend check for user experience only.
-    // Secure enforcement must be added to Express.
     if (promptsUsed >= tier.prompts) {
         alert(
             `This chat has reached its limit of ${tier.prompts} prompts. Please start a new chat.`
@@ -774,103 +982,53 @@ async function sendMessage() {
     }
 
     isSending = true;
-
-    if (sendButton) {
-        sendButton.disabled = true;
-    }
-
-    const previousMessages = currentConversation.slice();
-    const previousSessionId = activeSessionId;
+    sendButton.disabled = true;
 
     let pendingIndex = -1;
-    let userMessageSaved = false;
 
     try {
         if (!activeSessionId) {
             await createConversation(text);
         }
 
-        const conversationId = activeSessionId;
-
-        // Save user prompt
-        await saveMessage(
+        const savedUserMessage = await saveMessage(
             "user",
-            text,
-            conversationId
+            text
         );
 
-        userMessageSaved = true;
-
         currentConversation.push({
+            id: savedUserMessage.id,
             role: "user",
             content: text
         });
 
         chatInput.value = "";
+        resizeChatInput();
 
         pendingIndex = currentConversation.length;
 
         currentConversation.push({
             role: "assistant",
-            content: `Thinking (${currentTier.toUpperCase()})...`
+            content: "Thinking..."
         });
 
         renderChat();
 
-        // Authenticated Gemini request
-        const response = await authenticatedFetch(
-            "/api/chat",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    conversationId,
-                    reviews: [
-                        ...previousMessages,
-                        {
-                            role: "user",
-                            content: text
-                        }
-                    ]
-                        .map(message =>
-                            `${message.role}: ${message.content}`
-                        )
-                        .join("\n"),
-                    question: text
-                })
-            }
+        const context = currentConversation
+            .slice(0, pendingIndex);
+
+        const answer = await requestGemini(
+            context,
+            text
         );
 
-        let data;
-
-        try {
-            data = await response.json();
-        } catch {
-            throw new Error(
-                "The server returned an invalid response."
-            );
-        }
-
-        if (!response.ok) {
-            throw new Error(
-                data.error ||
-                `Request failed (${response.status})`
-            );
-        }
-
-        const answer =
-            data.answer || "No response was returned.";
-
-        // Save Gemini response
-        await saveMessage(
+        const savedAnswer = await saveMessage(
             "assistant",
-            answer,
-            conversationId
+            answer
         );
 
         currentConversation[pendingIndex] = {
+            id: savedAnswer.id,
             role: "assistant",
             content: answer
         };
@@ -878,52 +1036,189 @@ async function sendMessage() {
     } catch (error) {
         console.error("Chat error:", error);
 
-        const message = `Error: ${error.message}`;
-
         if (pendingIndex >= 0) {
             currentConversation[pendingIndex] = {
                 role: "assistant",
-                content: message
+                content: `Error: ${error.message}`
             };
         } else {
-            alert(message);
-        }
-
-        if (!userMessageSaved && previousSessionId) {
-            activeSessionId = previousSessionId;
+            alert(`Error: ${error.message}`);
         }
 
     } finally {
         isSending = false;
-
-        if (sendButton) {
-            sendButton.disabled = false;
-        }
+        sendButton.disabled = false;
 
         renderChat();
 
         try {
             await loadChatHistoryUI();
-        } catch (historyError) {
-            console.error(
-                "Unable to refresh chat history:",
-                historyError
-            );
+        } catch (error) {
+            console.error("History refresh error:", error);
         }
 
         try {
             await loadMonthlyUsage();
-        } catch (usageError) {
-            console.error(
-                "Unable to refresh monthly usage:",
-                usageError
-            );
+        } catch (error) {
+            console.error("Usage refresh error:", error);
         }
     }
 }
 
 // ==========================================
-// SUPABASE LOGOUT
+// REGENERATE RESPONSE
+// ==========================================
+
+async function regenerateResponse() {
+    if (
+        isSending ||
+        isRegenerating ||
+        !activeSessionId ||
+        !currentUser
+    ) {
+        return;
+    }
+
+    if (!subscriptionVerified) {
+        alert("Unable to verify subscription.");
+        return;
+    }
+
+    const lastIndex = currentConversation.length - 1;
+
+    const oldMessage = currentConversation[lastIndex];
+
+    if (
+        !oldMessage ||
+        oldMessage.role !== "assistant" ||
+        !oldMessage.id
+    ) {
+        return;
+    }
+
+    const messagesBeforeAnswer =
+        currentConversation.slice(0, lastIndex);
+
+    const lastUserMessage =
+        [...messagesBeforeAnswer]
+            .reverse()
+            .find(message => message.role === "user");
+
+    if (!lastUserMessage) return;
+
+    const originalConversationId = activeSessionId;
+    const originalMessage = { ...oldMessage };
+
+    isRegenerating = true;
+
+    currentConversation[lastIndex] = {
+        ...oldMessage,
+        content: "Regenerating response..."
+    };
+
+    renderChat();
+
+    try {
+        // Generate the replacement first, preserving
+        // the old answer if Gemini fails.
+        const newAnswer = await requestGemini(
+            messagesBeforeAnswer,
+            lastUserMessage.content
+        );
+
+        // Verify this is still the same conversation.
+        if (activeSessionId !== originalConversationId) {
+            throw new Error("Conversation changed.");
+        }
+
+        // Remove the previous assistant response.
+        const { data: deleted, error: deleteError } =
+            await supabaseClient
+                .from("messages")
+                .delete()
+                .eq("id", originalMessage.id)
+                .eq("conversation_id", originalConversationId)
+                .eq("role", "assistant")
+                .select("id");
+
+        if (deleteError || !deleted?.length) {
+            throw new Error(
+                "Unable to replace the previous response."
+            );
+        }
+
+        let savedAnswer;
+
+        try {
+            savedAnswer = await saveMessage(
+                "assistant",
+                newAnswer,
+                originalConversationId
+            );
+
+        } catch (saveError) {
+            // Best-effort recovery of original answer
+            try {
+                await saveMessage(
+                    "assistant",
+                    originalMessage.content,
+                    originalConversationId
+                );
+            } catch (restoreError) {
+                console.error(
+                    "Unable to restore original answer:",
+                    restoreError
+                );
+            }
+
+            throw saveError;
+        }
+
+        currentConversation[lastIndex] = {
+            id: savedAnswer.id,
+            role: "assistant",
+            content: newAnswer
+        };
+
+    } catch (error) {
+        console.error("Regeneration error:", error);
+
+        alert(
+            `Unable to regenerate response: ${error.message}`
+        );
+
+        // Reload authoritative database messages.
+        const { data, error: reloadError } =
+            await supabaseClient
+                .from("messages")
+                .select("id, role, content, created_at")
+                .eq("conversation_id", originalConversationId)
+                .order("created_at", {
+                    ascending: true
+                })
+                .order("id", {
+                    ascending: true
+                });
+
+        if (!reloadError && data) {
+            currentConversation = data.map(message => ({
+                id: message.id,
+                role: message.role,
+                content: message.content
+            }));
+        } else {
+            currentConversation[lastIndex] =
+                originalMessage;
+        }
+
+    } finally {
+        isRegenerating = false;
+        renderChat();
+    }
+}
+
+// ==========================================
+// LOGOUT
 // ==========================================
 
 async function logout() {
@@ -964,6 +1259,7 @@ async function logout() {
 
     } catch (error) {
         console.error("Logout error:", error);
+
         alert(
             "Unable to sign out. Please try again."
         );
@@ -986,45 +1282,7 @@ function formatAssistantContent(text) {
     return String(text)
         .split("\n")
         .map(line =>
-            `<p>${escapeHtml(line)}</p>`
+            `<p>${escapeHtml(line) || "&nbsp;"}</p>`
         )
         .join("");
-}
-
-// ==========================================
-// COPY ASSISTANT RESPONSE
-// ==========================================
-
-function copyText(btn) {
-    const element = btn
-        .closest(".chat-message")
-        .querySelector(".message-content");
-
-    if (!element) return;
-
-    navigator.clipboard.writeText(
-        element.innerText
-    );
-
-    btn.textContent = "✓";
-
-    setTimeout(() => {
-        btn.textContent = "📋";
-    }, 1500);
-}
-
-// ==========================================
-// ENTER KEY TO SEND
-// ==========================================
-
-if (chatInput) {
-    chatInput.addEventListener("keydown", event => {
-        if (
-            event.key === "Enter" &&
-            !event.shiftKey
-        ) {
-            event.preventDefault();
-            sendMessage();
-        }
-    });
 }

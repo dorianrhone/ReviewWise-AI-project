@@ -1,170 +1,201 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout - ReviewWise AI</title>
+    <title>Demo Checkout | ReviewWise AI</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-<main class="checkout-main">
-  <div class="chat-header" style="margin-bottom: 16px;">
-    <div>
-      <h1>Virtual Checkout</h1>
-      <p style="color: #9ca3af; margin: 4px 0 0 0;">Complete your subscription upgrade.</p>
-    </div>
-    <a href="pricing.html" class="nav-btn secondary">View Plans</a>
-  </div>
 
-  <!-- Checkout Grid -->
-  <div class="checkout-grid" id="checkout-view">
-    <div class="checkout-left">
-      <label>Selected Subscription</label>
-      <div id="selected-plan-display" class="order-summary" style="margin-bottom: 20px;">
-        <strong id="display-plan-name" style="color: #38bdf8;">Pro Tier</strong>
-        <p id="display-plan-desc" style="margin: 4px 0 0 0; color: #9ca3af; font-size: 13px;">Full subscription with standard Gemini AI capabilities.</p>
-      </div>
+<body class="chatgpt-theme">
 
-      <!-- Interactive Credit Card Visual -->
-      <div class="card-visual">
-        <div class="card-chip"></div>
-        <div class="card-number" id="preview-number">•••• •••• •••• ••••</div>
-        <div class="card-row">
-          <div>
-            <div style="font-size: 9px; text-transform: uppercase; opacity: 0.7;">Card Holder</div>
-            <div id="preview-name" style="font-size: 12px; font-weight: bold;">YOUR NAME</div>
-          </div>
-          <div>
-            <div style="font-size: 9px; text-transform: uppercase; opacity: 0.7;">Expires</div>
-            <div id="preview-expiry" style="font-size: 12px; font-weight: bold;">MM/YY</div>
-          </div>
-        </div>
-      </div>
-    </div>
+<main class="page-shell">
+    <div class="page-container narrow">
 
-    <!-- Virtual Payment Form -->
-    <div class="checkout-right">
-      <form id="payment-form" onsubmit="processPayment(event)">
-        <label for="card-name">Name on Card</label>
-        <input type="text" id="card-name" placeholder="John Doe" required oninput="updateCardPreview()">
+        <a href="home.html" class="page-brand">
+            ReviewWise AI
+        </a>
 
-        <label for="card-number">Card Number</label>
-        <input type="text" id="card-number" placeholder="4532 0123 4567 8910" maxlength="19" required oninput="formatCardNumber(this)">
-
-        <div style="display: flex; gap: 12px;">
-          <div>
-            <label for="card-exp">Expiration</label>
-            <input type="text" id="card-exp" placeholder="MM/YY" maxlength="5" required oninput="formatExpiry(this)">
-          </div>
-          <div>
-            <label for="card-cvv">CVV</label>
-            <input type="password" id="card-cvv" placeholder="123" maxlength="4" required>
-          </div>
+        <div class="page-header">
+            <div>
+                <h1>Demo Checkout</h1>
+                <p class="page-subtitle">
+                    Preview your subscription selection.
+                </p>
+            </div>
         </div>
 
-        <div class="order-summary">
-          <div class="summary-line">
-            <span>Subtotal:</span>
-            <span id="subtotal-amount">$5.99</span>
-          </div>
-          <div class="summary-line">
-            <span>Estimated Tax :</span>
-            <span id="tax-amount">$0.48</span>
-          </div>
-          <hr style="border-color: #3f3f46;">
-          <div class="summary-line total">
-            <span>Total Due Today:</span>
-            <span id="total-amount">$6.47</span>
-          </div>
-        </div>
+        <section class="rw-card" id="checkout-view">
 
-        <button type="submit" id="pay-btn" class="primary-gpt-btn" style="width: 100%; margin-top: 16px;">Pay & Activate Subscription</button>
-      </form>
-    </div>
-  </div>
+            <div class="rw-checkout-plan">
+                <h2 id="display-plan-name">
+                    Pro Tier
+                </h2>
 
-  <!-- Confirmation Receipt State -->
-  <div id="receipt-view" class="receipt-container" style="display: none;">
-    <div class="success-icon">✓</div>
-    <h2>Payment Successful!</h2>
-    <p style="color: #9ca3af;">Your paid subscription is now active.</p>
-    <div class="receipt-box">
-      <p><strong>Order ID:</strong> <span id="receipt-id">#RW-98214</span></p>
-      <p><strong>Plan:</strong> <span id="receipt-plan">Pro Tier</span></p>
-      <p><strong>Amount Paid:</strong> <span id="receipt-amount">$6.47</span></p>
-      <p><strong>Status:</strong> Active</p>
+                <p id="display-plan-desc">
+                    More conversations for growing businesses.
+                </p>
+            </div>
+
+            <div style="margin-top: 24px;">
+
+                <div class="rw-summary-row">
+                    <span>Monthly plan</span>
+                    <span id="subtotal-amount">$5.99</span>
+                </div>
+
+                <div class="rw-summary-row">
+                    <span>Estimated tax (8%)</span>
+                    <span id="tax-amount">$0.48</span>
+                </div>
+
+                <div class="rw-summary-row total">
+                    <span>Illustrative total</span>
+                    <span id="total-amount">$6.47</span>
+                </div>
+
+            </div>
+
+            <p class="rw-note">
+                This is a simulation. No payment information
+                is collected, and no real charge will occur.
+                Your database subscription will not change.
+            </p>
+
+            <button
+                type="button"
+                id="pay-btn"
+                class="rw-primary-btn"
+                onclick="processDemoCheckout()"
+            >
+                Complete Demo Checkout
+            </button>
+
+            <a href="pricing.html" class="rw-secondary-btn">
+                Change Plan
+            </a>
+
+        </section>
+
+        <!-- DEMO RECEIPT -->
+
+        <section
+            id="receipt-view"
+            class="rw-card"
+            style="display: none; text-align: center;"
+        >
+
+            <div class="rw-success-icon">✓</div>
+
+            <h2>Demo Complete</h2>
+
+            <p class="page-subtitle">
+                Your simulated checkout was completed.
+                No payment was processed.
+            </p>
+
+            <div class="rw-checkout-plan"
+                 style="margin-top: 24px; text-align: left;">
+
+                <h2 id="receipt-plan">Pro Tier</h2>
+
+                <p>
+                    Illustrative amount:
+                    <strong id="receipt-amount">$6.47</strong>
+                </p>
+
+                <p style="margin-top: 10px;">
+                    Status: Demo Only
+                </p>
+
+            </div>
+
+            <a href="home.html" class="rw-primary-btn">
+                Return to App
+            </a>
+
+        </section>
+
     </div>
-    <a href="home.html" class="nav-btn primary-gpt-btn" style="display: inline-block; margin-top: 16px; text-decoration: none;">Return to App</a>
-  </div>
 </main>
 
 <script>
-  const PLAN_DATA = {
-    pro: { name: "Pro Tier", price: 5.99, desc: "Full subscription with standard Gemini AI capabilities." },
-    advanced: { name: "Advanced Tier", price: 11.99, desc: "Unlocked access to a more advanced version of Gemini AI." }
-  };
+"use strict";
 
-  let pendingTier = localStorage.getItem("pendingCheckoutTier") || "pro";
-  if (!PLAN_DATA[pendingTier]) pendingTier = "pro";
+const PLAN_DATA = {
+    pro: {
+        name: "Pro Tier",
+        price: 5.99,
+        desc: "20 chats per month and 10 prompts per chat."
+    },
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const item = PLAN_DATA[pendingTier];
-    document.getElementById("display-plan-name").textContent = `${item.name} ($${item.price.toFixed(2)}/mo)`;
-    document.getElementById("display-plan-desc").textContent = item.desc;
+    advanced: {
+        name: "Advanced Tier",
+        price: 11.99,
+        desc: "30 chats per month and 15 prompts per chat."
+    }
+};
 
-    const subtotal = item.price;
+let pendingTier =
+    localStorage.getItem("pendingCheckoutTier") || "pro";
+
+if (!PLAN_DATA[pendingTier]) {
+    pendingTier = "pro";
+}
+
+function formatMoney(amount) {
+    return `$${amount.toFixed(2)}`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const plan = PLAN_DATA[pendingTier];
+
+    const subtotal = plan.price;
     const tax = subtotal * 0.08;
     const total = subtotal + tax;
 
-    document.getElementById("subtotal-amount").textContent = `$${subtotal.toFixed(2)}`;
-    document.getElementById("tax-amount").textContent = `$${tax.toFixed(2)}`;
-    document.getElementById("total-amount").textContent = `$${total.toFixed(2)}`;
-    document.getElementById("pay-btn").textContent = `Pay $${total.toFixed(2)}`;
-  });
+    document.getElementById(
+        "display-plan-name"
+    ).textContent = plan.name;
 
-  function updateCardPreview() {
-    const nameVal = document.getElementById("card-name").value.trim();
-    document.getElementById("preview-name").textContent = nameVal ? nameVal.toUpperCase() : "YOUR NAME";
-  }
+    document.getElementById(
+        "display-plan-desc"
+    ).textContent = plan.desc;
 
-  function formatCardNumber(input) {
-    let val = input.value.replace(/\D/g, '').substring(0, 16);
-    let formatted = val.match(/.{1,4}/g)?.join(' ') || '';
-    input.value = formatted;
-    document.getElementById("preview-number").textContent = formatted || "•••• •••• •••• ••••";
-  }
+    document.getElementById(
+        "subtotal-amount"
+    ).textContent = formatMoney(subtotal);
 
-  function formatExpiry(input) {
-    let val = input.value.replace(/\D/g, '').substring(0, 4);
-    if (val.length >= 3) {
-      val = val.substring(0, 2) + '/' + val.substring(2);
-    }
-    input.value = val;
-    document.getElementById("preview-expiry").textContent = val || "MM/YY";
-  }
+    document.getElementById(
+        "tax-amount"
+    ).textContent = formatMoney(tax);
 
-  function processPayment(e) {
-    e.preventDefault();
-    const btn = document.getElementById("pay-btn");
-    btn.disabled = true;
-    btn.textContent = "Processing Secure Payment...";
+    document.getElementById(
+        "total-amount"
+    ).textContent = formatMoney(total);
 
-    setTimeout(() => {
-      const item = PLAN_DATA[pendingTier];
-      const tax = item.price * 0.08;
-      const total = item.price + tax;
+    document.getElementById(
+        "receipt-plan"
+    ).textContent = plan.name;
 
-      localStorage.setItem("reviewWiseTier", pendingTier);
-      localStorage.setItem("reviewWisePaidStatus", "active");
+    document.getElementById(
+        "receipt-amount"
+    ).textContent = formatMoney(total);
+});
 
-      document.getElementById("receipt-id").textContent = "#RW-" + Math.floor(100000 + Math.random() * 900000);
-      document.getElementById("receipt-plan").textContent = item.name;
-      document.getElementById("receipt-amount").textContent = `$${total.toFixed(2)}`;
+function processDemoCheckout() {
+    document.getElementById(
+        "checkout-view"
+    ).style.display = "none";
 
-      document.getElementById("checkout-view").style.display = "none";
-      document.getElementById("receipt-view").style.display = "block";
-    }, 1200);
-  }
+    document.getElementById(
+        "receipt-view"
+    ).style.display = "block";
+
+    localStorage.removeItem("pendingCheckoutTier");
+}
 </script>
+
 </body>
 </html>

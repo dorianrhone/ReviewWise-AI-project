@@ -1,44 +1,89 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - ReviewWise AI</title>
+    <title>Sign In | ReviewWise AI</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body class="chatgpt-theme">
 
-<main class="pricing-main" style="max-width: 440px;">  
-  <div class="chat-header" style="margin-bottom: 20px;">
-    <div>
-      <h1>Welcome Back</h1>
-      <p style="color: #9ca3af; margin: 4px 0 0 0;">Sign in to access your ReviewWise AI workspace.</p>
+<main class="page-shell">
+    <div class="page-container narrow">
+
+        <a href="home.html" class="page-brand">
+            ReviewWise AI
+        </a>
+
+        <div class="page-header">
+            <div>
+                <h1>Welcome back</h1>
+                <p class="page-subtitle">
+                    Sign in to continue your business insights.
+                </p>
+            </div>
+        </div>
+
+        <section class="rw-card">
+
+            <div id="error-msg" class="rw-error" role="alert">
+                Invalid email or password. Please try again.
+            </div>
+
+            <form
+                id="login-form"
+                class="rw-form"
+                onsubmit="handleLogin(event)"
+            >
+
+                <label for="login-email">
+                    Email Address
+                </label>
+
+                <input
+                    type="email"
+                    id="login-email"
+                    placeholder="name@company.com"
+                    autocomplete="email"
+                    required
+                >
+
+                <label for="login-password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="login-password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button type="submit" class="rw-primary-btn">
+                    Sign In
+                </button>
+
+            </form>
+
+            <p class="rw-form-footer">
+                Don't have an account?
+                <a href="signup.html">Create one</a>
+            </p>
+
+        </section>
+
+        <p class="rw-form-footer">
+            <a href="home.html">← Back to ReviewWise AI</a>
+        </p>
+
     </div>
-    <a href="home.html" class="nav-btn secondary">Back to App</a>
-  </div>
-
-  <section class="pricing-container">
-    <div class="input-card" style="background: #212121; border: 1px solid #3f3f46; border-radius: 12px; padding: 24px;">
-      
-      <!-- Error Message Banner -->
-      <div id="error-msg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 16px;">
-        Invalid email or password. Please try again.
-      </div>
-
-      <form id="login-form" onsubmit="handleLogin(event)">
-        <label for="login-email">Email Address</label>
-        <input type="email" id="login-email" placeholder="name@company.com" required style="margin-bottom: 16px;">
-
-        <label for="login-password">Password</label>
-        <input type="password" id="login-password" placeholder="••••••••" required style="margin-bottom: 24px;">
-
-        <button type="submit" class="plan-btn primary" style="width: 100%; padding: 12px;">Sign In</button>
-      </form>
-    </div>
-  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="scripts/auth.js" defer></script>
+
 </body>
 </html>

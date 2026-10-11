@@ -3,130 +3,137 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Pricing Plans - ReviewWise AI</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Plans | ReviewWise AI</title>
     <link rel="stylesheet" href="styles.css">
     <script src="scripts/pricing.js" defer></script>
 </head>
 
 <body class="chatgpt-theme">
 
-<main class="pricing-main">
+<main class="page-shell">
+    <div class="page-container">
 
-    <div class="chat-header" style="margin-bottom: 16px;">
-        <div>
-            <h1>Subscription Plans</h1>
-            <p style="color: #9ca3af; margin: 4px 0 0 0;">
-                Choose the right ReviewWise AI plan for your business.
-            </p>
+        <a href="home.html" class="page-brand">
+            ReviewWise AI
+        </a>
+
+        <div class="page-header">
+            <div>
+                <h1>Simple, flexible plans</h1>
+                <p class="page-subtitle">
+                    Choose the right level of business intelligence.
+                </p>
+            </div>
+
+            <a href="home.html" class="page-back">
+                Back to App
+            </a>
         </div>
 
-        <a href="home.html" class="nav-btn secondary">
-            Back to App
-        </a>
-    </div>
+        <section class="rw-pricing-grid">
 
-    <section class="pricing-container">
+            <!-- FREE -->
 
-        <div class="pricing-grid">
+            <article class="rw-plan-card">
+                <h2>Free</h2>
 
-            <!-- FREE TIER -->
-            <div class="pricing-card">
-                <h3>Free Tier</h3>
+                <div class="rw-plan-price">
+                    $0<span>/month</span>
+                </div>
 
-                <p class="price">
-                    $0<span>/mo</span>
+                <p class="rw-plan-description">
+                    Essential insights for getting started.
                 </p>
 
-                <p>
-                    Get started with AI-powered business insights.
-                </p>
-
-                <ul>
+                <ul class="rw-plan-features">
                     <li>10 chats per month</li>
                     <li>5 prompts per chat</li>
                     <li>Gemini AI review analysis</li>
-                    <li>Saved chat history</li>
+                    <li>Saved conversations</li>
                 </ul>
 
                 <button
-                    class="plan-btn"
-                    onclick="selectFreePlan()">
-                    Activate Free Plan
+                    class="rw-secondary-btn"
+                    type="button"
+                    onclick="selectFreePlan()"
+                >
+                    Activate Free
                 </button>
-            </div>
+            </article>
 
-            <!-- PRO TIER -->
-            <div class="pricing-card popular">
+            <!-- PRO -->
 
-                <h3>Pro Tier</h3>
+            <article class="rw-plan-card popular">
 
-                <p class="price">
-                    $5.99<span>/mo</span>
+                <span class="rw-plan-label">
+                    MOST POPULAR
+                </span>
+
+                <h2>Pro</h2>
+
+                <div class="rw-plan-price">
+                    $5.99<span>/month</span>
+                </div>
+
+                <p class="rw-plan-description">
+                    More insights for growing businesses.
                 </p>
 
-                <p>
-                    More conversations for growing businesses.
-                </p>
-
-                <ul>
+                <ul class="rw-plan-features">
                     <li>20 chats per month</li>
                     <li>10 prompts per chat</li>
                     <li>Gemini AI review analysis</li>
-                    <li>Saved chat history</li>
+                    <li>Saved conversations</li>
                 </ul>
 
                 <button
-                    class="plan-btn primary"
-                    onclick="goToCheckout('pro')">
-                    Choose Pro - $5.99/mo
+                    class="rw-primary-btn"
+                    type="button"
+                    onclick="goToCheckout('pro')"
+                >
+                    Choose Pro
                 </button>
-            </div>
+            </article>
 
-            <!-- ADVANCED TIER -->
-            <div class="pricing-card">
+            <!-- ADVANCED -->
 
-                <h3>Advanced Tier</h3>
+            <article class="rw-plan-card">
 
-                <p class="price">
-                    $11.99<span>/mo</span>
+                <h2>Advanced</h2>
+
+                <div class="rw-plan-price">
+                    $11.99<span>/month</span>
+                </div>
+
+                <p class="rw-plan-description">
+                    Higher limits for active businesses.
                 </p>
 
-                <p>
-                    Higher usage limits for active businesses.
-                </p>
-
-                <ul>
+                <ul class="rw-plan-features">
                     <li>30 chats per month</li>
                     <li>15 prompts per chat</li>
                     <li>Gemini AI review analysis</li>
-                    <li>Saved chat history</li>
+                    <li>Saved conversations</li>
                 </ul>
 
                 <button
-                    class="plan-btn"
-                    onclick="goToCheckout('advanced')">
-                    Choose Advanced - $11.99/mo
+                    class="rw-secondary-btn"
+                    type="button"
+                    onclick="goToCheckout('advanced')"
+                >
+                    Choose Advanced
                 </button>
-            </div>
+            </article>
 
-        </div>
+        </section>
 
-        <p style="
-            color: #9ca3af;
-            font-size: 12px;
-            text-align: center;
-            margin-top: 24px;
-        ">
-            Demo subscriptions only.
-            No real payments or recurring charges are processed.
+        <p class="rw-note">
+            Hackathon demo plans only. No actual payments
+            or recurring charges are processed.
         </p>
 
-    </section>
-
+    </div>
 </main>
 
 </body>
