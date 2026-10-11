@@ -43,6 +43,11 @@ const TIER_LIMITS = {
 
 let currentTier = "free";
 
+let monthlyUsage = {
+    month: "",
+    chats: 0
+};
+
 // ==========================================
 // INITIALIZE APPLICATION
 // ==========================================
@@ -146,25 +151,45 @@ async function initializeHomeAuth() {
 // DEMO SUBSCRIPTION MANAGEMENT
 // ==========================================
 
-function loadSubscriptionTier() {
-    if (!currentUser) {
+
+async function loadSubscriptionTier() {
+    if (!currentUser || !supabaseClient) {
         currentTier = "free";
+        monthlyUsage = { month: "", chats: 0 };
+        updateTierBadgeUI();
         return;
     }
 
-    const savedTier = localStorage.getItem("reviewWiseTier");
-    const paidStatus =
-        localStorage.getItem("reviewWisePaidStatus");
+    const { data: sessionData, error: sessionError } =
+        await supabaseClient.auth.getSession();
 
-    if (
-        (savedTier === "pro" || savedTier === "advanced") &&
-        paidStatus === "active"
-    ) {
-        currentTier = savedTier;
-    } else {
-        currentTier = "free";
+    if (sessionError || !sessionData.session) {
+        throw new Error("Please sign in again.");
     }
+
+    const response = await fetch("/api/subscription", {
+        headers: {
+            Authorization:
+                `Bearer ${sessionData.session.access_token}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error("Unable to load subscription.");
+    }
+
+    const subscription = await response.json();
+
+    if (!TIER_LIMITS[subscription.tier]) {
+        throw new Error("Invalid subscription tier.");
+    }
+
+    currentTier = subscription.tier;
+
+    await loadMonthlyUsage();
+    updateTierBadgeUI();
 }
+
 
 // ==========================================
 // MONTHLY USAGE TRACKING
@@ -270,42 +295,35 @@ function startNewChat() {
 // CREATE CONVERSATION IN SUPABASE
 // ==========================================
 
+
 async function createConversation(firstMessage) {
-    if (!currentUser) {
+    if (!currentUser || !supabaseClient) {
         throw new Error("Please sign in first.");
-    }
-
-    const usage = getMonthlyUsage();
-    const tier = TIER_LIMITS[currentTier];
-
-    if (usage.chats >= tier.chats) {
-        throw new Error(
-            `You have reached your monthly limit of ${tier.chats} chats.`
-        );
     }
 
     const title =
         firstMessage.substring(0, 40) || "New Chat";
 
-    const { data, error } = await supabaseClient
-        .from("conversations")
-        .insert({
-            user_id: currentUser.id,
-            title
-        })
-        .select()
-        .single();
+    // Create conversation through the Supabase quota function
+    const { data, error } = await supabaseClient.rpc(
+        "create_limited_conversation",
+        {
+            p_title: title
+        }
+    );
 
-    if (error) throw error;
+    if (error) {
+        throw new Error(error.message);
+    }
 
-    activeSessionId = data.id;
-
-    incrementMonthlyChats();
+    // The database function returns the conversation UUID
+    activeSessionId = data;
 
     await loadChatHistoryUI();
 
-    return data;
+    return { id: data };
 }
+
 
 // ==========================================
 // SAVE MESSAGE TO SUPABASE
