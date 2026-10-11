@@ -4,10 +4,6 @@
 
 # The Chargers
 
-Team Members
+Team Members:
 
-Dorian Rhone
-
-Ryan Orjuela
-
-Sophie Edwards
+Dorian Rhone, Ryan Orjuela, Sophie Edwards
